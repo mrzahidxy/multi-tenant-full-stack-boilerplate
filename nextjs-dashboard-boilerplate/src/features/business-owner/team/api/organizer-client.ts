@@ -33,15 +33,15 @@ export type UpdateOrganizerRequest = {
 
 export type CreateOrganizerEventRequest = {
   description?: string
-  isPublished?: boolean
   name: string
+  isPublished?: boolean
   price: number
 }
 
 export type UpdateOrganizerEventRequest = {
   description?: string | null
-  isPublished?: boolean
   name?: string
+  isPublished?: boolean
   price?: number
 }
 

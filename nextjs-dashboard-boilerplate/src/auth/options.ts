@@ -1,20 +1,17 @@
 import { createHash } from 'node:crypto'
-
-import type { User } from 'next-auth'
-import { env } from '@/config/env'
-import type { NextAuthConfig } from 'next-auth'
-import NextAuth from 'next-auth'
-import Credentials from 'next-auth/providers/credentials'
-
 import { getOptionalOAuthProviders } from '@/auth/providers'
 import { authRoutes } from '@/auth/routes'
+import { env } from '@/config/env'
+import { loginSchema } from '@/validation/auth-schema'
+import type { NextAuthConfig, User } from 'next-auth'
+import NextAuth from 'next-auth'
+import Credentials from 'next-auth/providers/credentials'
 import {
   loginWithBackend,
   logoutFromBackend,
   refreshBackendSession,
 } from '@/server/auth/backend-auth'
 import type { UserRole } from '@/types/user'
-import { loginSchema } from '@/validation/auth-schema'
 
 const credentialProvider = Credentials({
   name: 'Email and Password',
@@ -132,7 +129,9 @@ const authConfig: NextAuthConfig = {
         return token
       }
 
-      const expiresAt = new Date(token.accessTokenExpiresAt).getTime()
+      console.log('token.accessTokenExpiresAt', token.accessTokenExpiresAt)
+
+      const expiresAt = new Date(token.accessTokenExpiresAt as string).getTime()
 
       if (Number.isNaN(expiresAt) || Date.now() < expiresAt - 60_000) {
         return token
@@ -140,12 +139,12 @@ const authConfig: NextAuthConfig = {
 
       try {
         const refreshed = await refreshBackendSession({
-          accessToken: token.accessToken,
+          accessToken: token.accessToken as string,
           refreshCookie:
             token.refreshToken && token.refreshTokenCookieName
               ? {
-                  name: token.refreshTokenCookieName,
-                  value: token.refreshToken,
+                  name: token.refreshTokenCookieName as string,
+                  value: token.refreshToken as string,
                 }
               : null,
         })
@@ -215,8 +214,7 @@ const authConfig: NextAuthConfig = {
         return
       }
 
-      const accessToken =
-        typeof token.accessToken === 'string' ? token.accessToken : null
+      const accessToken = typeof token.accessToken === 'string' ? token.accessToken : null
       const refreshToken =
         typeof token.refreshToken === 'string' ? token.refreshToken : null
       const refreshTokenCookieName =

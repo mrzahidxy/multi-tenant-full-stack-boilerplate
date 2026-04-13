@@ -1,5 +1,6 @@
-import type { DefaultSession } from 'next-auth'
-import type { UserRole } from '@/types/user'
+import type { DefaultSession } from 'next-auth';
+import type { UserRole } from '@/types/user';
+
 
 declare module 'next-auth' {
   interface Session {
@@ -19,6 +20,7 @@ declare module 'next-auth' {
   interface User {
     businessId?: string
     id: string
+    organizerId?: string
     role: UserRole
     name: string
     email: string

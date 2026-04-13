@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
-import { CalendarDays, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { ShieldCheck, UserPlus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { DashboardHeader } from '../dashboard/components/dashboard-header'
@@ -12,10 +12,7 @@ import { StatCard } from '../dashboard/components/stat-card'
 import { organizerKeys } from './api/organizer-keys'
 import {
   addOrganizerStaff,
-  createOrganizerEvent,
-  deleteOrganizerEvent,
   getOrganizer,
-  listOrganizerEvents,
   listOrganizerStaff,
   removeOrganizerStaff,
   updateOrganizer,
@@ -31,9 +28,9 @@ import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { getRbacDefinitions } from '@/lib/api/rbac-client'
 import { rbacKeys } from '@/lib/api/rbac-keys'
-import { formatCurrency, formatRelativeDate } from '@/lib/format'
+import { getRbacDefinitions } from '@/lib/api/rbac-client'
+import { formatRelativeDate } from '@/lib/format'
 import { resolveOrganizerScopeId } from '@/features/business-owner/analytics/utils'
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -55,22 +52,10 @@ export default function TeamPage() {
 
   const [organizerName, setOrganizerName] = useState('')
   const [selectedUserId, setSelectedUserId] = useState('')
-  const [eventForm, setEventForm] = useState({
-    name: '',
-    description: '',
-    price: '0',
-    isPublished: 'true',
-  })
 
   const organizerQuery = useQuery({
     queryKey: organizerId ? organizerKeys.detail(organizerId) : ['organizers', 'detail', 'unassigned'],
     queryFn: () => getOrganizer(organizerId as string),
-    enabled: Boolean(organizerId),
-  })
-
-  const eventsQuery = useQuery({
-    queryKey: organizerId ? organizerKeys.events(organizerId) : ['organizers', 'events', 'unassigned'],
-    queryFn: () => listOrganizerEvents(organizerId as string),
     enabled: Boolean(organizerId),
   })
 
@@ -92,7 +77,6 @@ export default function TeamPage() {
   })
 
   const organizer = organizerQuery.data ?? null
-  const events = eventsQuery.data ?? []
   const staff = staffQuery.data ?? []
   const users = usersQuery.data?.users ?? []
 
@@ -117,12 +101,6 @@ export default function TeamPage() {
         icon: <ShieldCheck className="h-5 w-5" />,
       },
       {
-        label: 'Events',
-        value: events.length,
-        helper: `${events.filter((event) => event.isPublished).length} published`,
-        icon: <CalendarDays className="h-5 w-5" />,
-      },
-      {
         label: 'Staff',
         value: staff.length,
         helper: 'Assigned to this organizer',
@@ -134,7 +112,7 @@ export default function TeamPage() {
         helper: 'Live RBAC definitions',
       },
     ],
-    [events, organizer, rolesQuery.data, staff.length],
+    [organizer, rolesQuery.data, staff.length],
   )
 
   const organizerMutation = useMutation({
@@ -146,40 +124,6 @@ export default function TeamPage() {
     },
     onError: (mutationError) => {
       toast.error(getErrorMessage(mutationError, 'Unable to update organizer'))
-    },
-  })
-
-  const eventMutation = useMutation({
-    mutationFn: () =>
-      createOrganizerEvent(organizerId as string, {
-        description: eventForm.description.trim() || undefined,
-        isPublished: eventForm.isPublished === 'true',
-        name: eventForm.name.trim(),
-        price: Number(eventForm.price),
-      }),
-    onSuccess: () => {
-      toast.success('Event created')
-      setEventForm({
-        name: '',
-        description: '',
-        price: '0',
-        isPublished: 'true',
-      })
-      queryClient.invalidateQueries({ queryKey: organizerKeys.events(organizerId as string) })
-    },
-    onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, 'Unable to create event'))
-    },
-  })
-
-  const deleteEventMutation = useMutation({
-    mutationFn: (eventId: string) => deleteOrganizerEvent(organizerId as string, eventId),
-    onSuccess: () => {
-      toast.success('Event removed')
-      queryClient.invalidateQueries({ queryKey: organizerKeys.events(organizerId as string) })
-    },
-    onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, 'Unable to delete event'))
     },
   })
 
@@ -215,25 +159,6 @@ export default function TeamPage() {
     organizerMutation.mutate(organizerName.trim())
   }
 
-  const handleCreateEvent = () => {
-    if (!organizerId) {
-      toast.error('Your account is not linked to an organizer')
-      return
-    }
-
-    if (!eventForm.name.trim()) {
-      toast.error('Event name is required')
-      return
-    }
-
-    if (!Number.isFinite(Number(eventForm.price))) {
-      toast.error('Price must be a valid number')
-      return
-    }
-
-    eventMutation.mutate()
-  }
-
   const handleAddStaff = () => {
     if (!selectedUserId) {
       toast.error('Select a user to add')
@@ -254,10 +179,10 @@ export default function TeamPage() {
     <div className="space-y-8">
       <DashboardHeader
         title="Organizer Team"
-        description="Manage organizer profile, events, staff, and role definitions from the backend API"
+        description="Manage organizer profile, staff, and role definitions from the backend API"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
@@ -306,118 +231,6 @@ export default function TeamPage() {
                 Updated{' '}
                 {organizer?.updatedAt ? formatRelativeDate(organizer.updatedAt) : 'unknown'}
               </span>
-            </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Organizer Events"
-            subtitle="Read and create organizer events"
-            actions={
-              canManageOrganizer ? (
-                <Button onClick={handleCreateEvent} disabled={eventMutation.isPending}>
-                  {eventMutation.isPending ? 'Creating...' : 'Create event'}
-                </Button>
-              ) : null
-            }
-          >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FormField label="Event name" htmlFor="event-name">
-                <Input
-                  id="event-name"
-                  value={eventForm.name}
-                  onChange={(event) =>
-                    setEventForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-              <FormField label="Price" htmlFor="event-price">
-                <Input
-                  id="event-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={eventForm.price}
-                  onChange={(event) =>
-                    setEventForm((current) => ({ ...current, price: event.target.value }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-              <FormField label="Publish status" htmlFor="event-published">
-                <Select
-                  id="event-published"
-                  value={eventForm.isPublished}
-                  onChange={(event) =>
-                    setEventForm((current) => ({
-                      ...current,
-                      isPublished: event.target.value,
-                    }))
-                  }
-                  disabled={!canManageOrganizer}
-                >
-                  <option value="true">Published</option>
-                  <option value="false">Draft</option>
-                </Select>
-              </FormField>
-              <FormField label="Description" htmlFor="event-description">
-                <Input
-                  id="event-description"
-                  value={eventForm.description}
-                  onChange={(event) =>
-                    setEventForm((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-            </div>
-
-            <div className="space-y-4">
-              {eventsQuery.isLoading ? (
-                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  <Spinner size="sm" />
-                  Loading organizer events...
-                </div>
-              ) : events.length ? (
-                events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{event.name}</p>
-                        <Badge variant={event.isPublished ? 'success' : 'outline'}>
-                          {event.isPublished ? 'Published' : 'Draft'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        {event.description || 'No description'}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {formatCurrency(event.price)} • Updated{' '}
-                        {event.updatedAt ? formatRelativeDate(event.updatedAt) : 'unknown'}
-                      </p>
-                    </div>
-                    {canManageOrganizer ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => deleteEventMutation.mutate(event.id)}
-                        disabled={deleteEventMutation.isPending}
-                      >
-                        Remove
-                      </Button>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
-                  No organizer events were returned by the backend.
-                </div>
-              )}
             </div>
           </SectionCard>
 
@@ -501,6 +314,7 @@ export default function TeamPage() {
               )}
             </div>
           </SectionCard>
+
         </>
       )}
 

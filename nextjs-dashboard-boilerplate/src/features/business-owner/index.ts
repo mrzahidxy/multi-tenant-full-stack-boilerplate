@@ -1,5 +1,6 @@
 export { default as AnalyticsPage } from './analytics/page'
 export { default as DashboardPage } from './dashboard/page'
 export { default as BookingsPage } from './booking/booking-page'
+export { default as EventPage } from './event/page'
 export { default as SettingsPage } from './settings/page'
 export { default as TeamPage } from './team/page'
