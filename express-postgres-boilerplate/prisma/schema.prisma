@@ -1,0 +1,132 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String?
+  passwordHash String
+  role         Role      @default(USER)
+  permissions  String[]  @default([])
+  bookings     Booking[]
+  ownedOrganizer Organizer? @relation("OrganizerOwner")
+  organizerAssignments OrganizerStaff[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Organizer {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  ownerId   Int      @unique
+  isSuspended Boolean @default(false)
+  suspendedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User      @relation("OrganizerOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  events Event[]
+  staffMembers OrganizerStaff[]
+}
+
+model Event {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizerId String   @db.Uuid
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@index([organizerId])
+  @@unique([organizerId, name])
+}
+
+model OrganizerStaff {
+  organizerId String   @db.Uuid
+  userId     Int
+  assignedAt DateTime @default(now())
+
+  organizer Organizer @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([organizerId, userId])
+  @@index([userId])
+}
+
+model Booking {
+  id           Int           @id @default(autoincrement())
+  userId       Int?
+  eventId      String?       @db.Uuid
+  eventName    String?
+  fullName     String?
+  email        String?
+  phone        String?
+  bookingDate  DateTime?     @db.Date
+  bookingTime  String?
+  guestCount   Int?
+  checkIn      DateTime?
+  checkOut     DateTime?
+  totalPrice   Decimal?      @db.Decimal(10, 2)
+  status       BookingStatus @default(PENDING)
+  notes        String?
+  payments     Payment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event? @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([email])
+  @@index([bookingDate])
+}
+
+model Payment {
+  id                    Int           @id @default(autoincrement())
+  bookingId             Int
+  amount                Decimal       @db.Decimal(10, 2)
+  currency              String
+  status                PaymentStatus @default(PENDING)
+  stripeSessionId       String        @unique
+  stripePaymentIntentId String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+}
+
+enum Role {
+  USER
+  STAFF
+  OWNER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}

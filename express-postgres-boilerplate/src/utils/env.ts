@@ -1,0 +1,70 @@
+import 'dotenv/config';
+
+import { z } from 'zod';
+
+const baseEnvSchema = z.object({
+  APP_NAME: z.string().default('Pern Boilerplate API'),
+  APP_DESCRIPTION: z
+    .string()
+    .default('Pern Boilerplate API with auth, RBAC, and sample modules.'),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().default(8080),
+  HOST: z.string().default('0.0.0.0'),
+  DATABASE_URL: z.string().url(),
+  DIRECT_URL: z.string().url().optional(),
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET should be at least 16 characters long'),
+  ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().default(30),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7),
+  REFRESH_TOKEN_COOKIE_NAME: z.string().default('refreshToken'),
+  REFRESH_TOKEN_COOKIE_PATH: z.string().default('/api'),
+  COOKIE_DOMAIN: z.string().optional(),
+  COOKIE_SECURE: z.coerce.boolean().default(false),
+  COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  JWT_ISSUER: z.string().default('pern-boilerplate'),
+  JWT_AUDIENCE: z.string().optional(),
+  CORS_ORIGIN: z
+    .string()
+    .default(
+      'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173',
+    ),
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_CURRENCY: z.string().default('usd'),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  MAX_UPLOAD_SIZE: z.coerce.number().default(5 * 1024 * 1024),
+  TRUST_PROXY: z.coerce.boolean().default(false),
+  REDIS_URL: z.string().optional(),
+});
+
+const envSchema = baseEnvSchema.superRefine((data, ctx) => {
+  const origins = data.CORS_ORIGIN.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['REDIS_URL'],
+      message: 'REDIS_URL is required in production',
+    });
+  }
+
+  if (data.NODE_ENV === 'production' && (origins.length === 0 || origins.includes('*'))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['CORS_ORIGIN'],
+      message: 'CORS_ORIGIN must list explicit origins in production',
+    });
+  }
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('❌ Invalid environment configuration', parsed.error.flatten().fieldErrors);
+  throw new Error('Invalid environment configuration');
+}
+
+export const env = parsed.data;
