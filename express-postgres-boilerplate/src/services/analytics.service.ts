@@ -6,6 +6,7 @@ import { HttpError } from '../utils/http-error';
 import { cache } from '../utils/cache';
 import { logger } from '../utils/logger';
 import { prisma } from '../utils/prisma';
+import { resolveOrganizerTenantScope } from './tenant-scope.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -350,8 +351,6 @@ const dateRangePayload = (query: ResolvedAnalyticsQuery): AnalyticsDateRange => 
   granularity: query.granularity,
 });
 
-const emptyOrganizerIds = (): string[] => [];
-
 const formatScopePayload = (scope: AnalyticsScope) => ({
   visibility: scope.visibility,
   organizerIds: scope.organizerIds,
@@ -378,19 +377,22 @@ const buildCacheKey = (
     .filter(Boolean)
     .join(':');
 
+const organizerIdsAsUuidList = (organizerIds: string[]) =>
+  Prisma.join(organizerIds.map((id) => Prisma.sql`CAST(${id} AS UUID)`));
+
 const organizerFilterFragment = (organizerIds: string[]) =>
   organizerIds.length
-    ? Prisma.sql`AND e."organizerId" IN (${Prisma.join(organizerIds)})`
+    ? Prisma.sql`AND e."organizerId" IN (${organizerIdsAsUuidList(organizerIds)})`
     : Prisma.sql``;
 
 const organizerWhereFragment = (organizerIds: string[]) =>
   organizerIds.length
-    ? Prisma.sql`WHERE o.id IN (${Prisma.join(organizerIds)})`
+    ? Prisma.sql`WHERE o.id IN (${organizerIdsAsUuidList(organizerIds)})`
     : Prisma.sql``;
 
 const organizerStaffWhereFragment = (organizerIds: string[]) =>
   organizerIds.length
-    ? Prisma.sql`WHERE os."organizerId" IN (${Prisma.join(organizerIds)})`
+    ? Prisma.sql`WHERE os."organizerId" IN (${organizerIdsAsUuidList(organizerIds)})`
     : Prisma.sql``;
 
 const emptyBookingSummary = (): BookingSummary => ({
@@ -480,102 +482,18 @@ const withCache = async <T>(
   return value;
 };
 
-const resolveOwnedOrganizerId = async (
-  deps: AnalyticsServiceDependencies,
-  actor: AuthenticatedUser
-): Promise<string | null> => {
-  if (actor.organizerId) {
-    return actor.organizerId;
-  }
-
-  const ownedOrganizer = await deps.prisma.organizer.findUnique({
-    where: { ownerId: actor.id },
-    select: { id: true },
-  });
-
-  return ownedOrganizer?.id ?? null;
-};
-
-const ensureOrganizerExists = async (
-  deps: AnalyticsServiceDependencies,
-  organizerId: string
-): Promise<void> => {
-  const organizer = await deps.prisma.organizer.findUnique({
-    where: { id: organizerId },
-    select: { id: true },
-  });
-
-  if (!organizer) {
-    throw new HttpError(404, 'Organizer not found');
-  }
-};
-
 const resolveAnalyticsScope = async (
   deps: AnalyticsServiceDependencies,
   actor: AuthenticatedUser,
   requestedOrganizerId?: string
 ): Promise<AnalyticsScope> => {
-  if (actor.role === Role.ADMIN) {
-    if (requestedOrganizerId) {
-      await ensureOrganizerExists(deps, requestedOrganizerId);
-      return {
-        visibility: 'organizer',
-        organizerIds: [requestedOrganizerId],
-        cacheScope: `organizer:${requestedOrganizerId}`,
-      };
-    }
-
-    return {
-      visibility: 'platform',
-      organizerIds: emptyOrganizerIds(),
-      cacheScope: 'platform',
-    };
-  }
-
-  if (actor.role === Role.OWNER) {
-    const ownedOrganizerId = await resolveOwnedOrganizerId(deps, actor);
-
-    if (!ownedOrganizerId) {
-      throw new HttpError(403, 'Owner analytics require an owned organizer');
-    }
-
-    if (requestedOrganizerId && requestedOrganizerId !== ownedOrganizerId) {
-      throw new HttpError(403, 'You do not have permission to access analytics for this organizer');
-    }
-
-    return {
-      visibility: 'organizer',
-      organizerIds: [ownedOrganizerId],
-      cacheScope: `organizer:${ownedOrganizerId}`,
-    };
-  }
-
-  if (actor.role === Role.STAFF) {
-    const assignments = await deps.prisma.organizerStaff.findMany({
-      where: { userId: actor.id },
-      select: { organizerId: true },
-    });
-
-    const assignedOrganizerIds = assignments.map((assignment) => assignment.organizerId);
-
-    if (assignedOrganizerIds.length === 0) {
-      throw new HttpError(403, 'Staff analytics require at least one organizer assignment');
-    }
-
-    if (requestedOrganizerId && !assignedOrganizerIds.includes(requestedOrganizerId)) {
-      throw new HttpError(403, 'You do not have permission to access analytics for this organizer');
-    }
-
-    const organizerIds = requestedOrganizerId ? [requestedOrganizerId] : assignedOrganizerIds;
-
-    return {
-      visibility: 'organizer',
-      organizerIds,
-      cacheScope: `organizer:${organizerIds.slice().sort().join(',')}`,
-    };
-  }
-
-  throw new HttpError(403, 'You do not have permission to access analytics');
+  return resolveOrganizerTenantScope(deps, actor, {
+    requestedOrganizerId,
+    allowAdminPlatform: true,
+    ownerNoOrganizerMessage: 'Owner analytics require an owned organizer',
+    staffNoAssignmentsMessage: 'Staff analytics require at least one organizer assignment',
+    forbiddenMessage: 'You do not have permission to access analytics for this organizer',
+  });
 };
 
 const createAnalyticsServiceHelpers = (deps: AnalyticsServiceDependencies) => {
@@ -906,6 +824,8 @@ const createAnalyticsServiceHelpers = (deps: AnalyticsServiceDependencies) => {
       `;
     }
 
+    const organizerIds = organizerIdsAsUuidList(scope.organizerIds);
+
     return Prisma.sql`
       WITH "ScopedUsers" AS (
         SELECT DISTINCT
@@ -920,9 +840,9 @@ const createAnalyticsServiceHelpers = (deps: AnalyticsServiceDependencies) => {
         LEFT JOIN "Organizer" o ON o."ownerId" = u.id
         LEFT JOIN "OrganizerStaff" os ON os."userId" = u.id
         WHERE
-          e."organizerId" IN (${Prisma.join(scope.organizerIds)})
-          OR o.id IN (${Prisma.join(scope.organizerIds)})
-          OR os."organizerId" IN (${Prisma.join(scope.organizerIds)})
+          e."organizerId" IN (${organizerIds})
+          OR o.id IN (${organizerIds})
+          OR os."organizerId" IN (${organizerIds})
       )
     `;
   };
@@ -931,6 +851,8 @@ const createAnalyticsServiceHelpers = (deps: AnalyticsServiceDependencies) => {
     scope: AnalyticsScope,
     query: ResolvedAnalyticsQuery
   ): Promise<UserSummary> => {
+    const organizerIds = organizerIdsAsUuidList(scope.organizerIds);
+
     const [summaryRows, roleRows] = await Promise.all([
       deps.prisma.$queryRaw<UserSummaryRow[]>`
         ${scopedUsersCte(scope)}
@@ -948,17 +870,17 @@ const createAnalyticsServiceHelpers = (deps: AnalyticsServiceDependencies) => {
               SELECT DISTINCT b."userId" AS id
               FROM "Booking" b
               INNER JOIN "Event" e ON e.id = b."eventId"
-              WHERE e."organizerId" IN (${Prisma.join(scope.organizerIds)})
+              WHERE e."organizerId" IN (${organizerIds})
                 AND b."createdAt" >= ${query.dateFrom}
                 AND b."createdAt" <= ${query.dateTo}
               UNION
               SELECT DISTINCT o."ownerId" AS id
               FROM "Organizer" o
-              WHERE o.id IN (${Prisma.join(scope.organizerIds)})
+              WHERE o.id IN (${organizerIds})
               UNION
               SELECT DISTINCT os."userId" AS id
               FROM "OrganizerStaff" os
-              WHERE os."organizerId" IN (${Prisma.join(scope.organizerIds)})
+              WHERE os."organizerId" IN (${organizerIds})
             )
             SELECT u.role, COUNT(*)::int AS count
             FROM "User" u

@@ -13,6 +13,8 @@ import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 import { formatDate } from '@/lib/format'
+import { toTitleCase } from '@/lib/utils'
+import { isAdminRole } from '@/types/user'
 
 import {
   createUser,
@@ -43,14 +45,6 @@ type UseUsersTableState = {
     user?: DirectoryUser
     action?: DialogAction
   }
-}
-
-function toTitleCase(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[\s_-]+/)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
 }
 
 function mapUserToDirectoryUser(user: AdminUser): DirectoryUser {
@@ -116,7 +110,7 @@ export function useUsersTable() {
 
   const currentUserId = session?.user?.id ?? null
   const currentRole = session?.user?.role
-  const isAdmin = currentRole === 'ADMIN' || currentRole === 'SUPER_ADMIN'
+  const isAdmin = isAdminRole(currentRole)
 
   const deferredSearch = useDeferredValue(searchQuery)
 

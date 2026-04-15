@@ -5,14 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function isDefined<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined
-}
-
-export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
 export function compactWhitespace(value: string) {
   return value.replace(/\s+/g, ' ').trim()
 }
@@ -44,10 +36,4 @@ export function getInitials(value: string, maxLength = 2) {
     .slice(0, maxLength)
     .map((word) => word.charAt(0).toUpperCase())
     .join('')
-}
-
-export function sleep(ms: number) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
 }

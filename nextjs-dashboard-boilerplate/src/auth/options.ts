@@ -129,8 +129,6 @@ const authConfig: NextAuthConfig = {
         return token
       }
 
-      console.log('token.accessTokenExpiresAt', token.accessTokenExpiresAt)
-
       const expiresAt = new Date(token.accessTokenExpiresAt as string).getTime()
 
       if (Number.isNaN(expiresAt) || Date.now() < expiresAt - 60_000) {

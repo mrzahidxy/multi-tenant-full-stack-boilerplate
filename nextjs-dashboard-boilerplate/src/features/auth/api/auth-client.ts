@@ -3,6 +3,7 @@
 import { apiClient } from '@/lib/api'
 import { extractEntity } from '@/lib/api/normalizers'
 import { normalizeUserLike } from '@/lib/api/normalizers'
+import { unwrapData } from '@/lib/api/normalizers'
 import { useAuthStore } from '@/stores/auth-store'
 import type { AuthSessionPayload, AuthenticatedUser } from '@/types/auth'
 
@@ -28,6 +29,7 @@ type RawAuthSessionResponse = Partial<AuthSessionPayload> & {
   token?: string
   user?: Partial<AuthenticatedUser> | null
 }
+type ApiEnvelope<T> = { data?: T | null; meta?: Record<string, unknown>; message?: string }
 
 type LogoutResponse = {
   message?: string
@@ -72,13 +74,17 @@ function normalizeAuthSession(payload: RawAuthSessionResponse): AuthSessionPaylo
   }
 }
 
+function extractAuthPayload(payload: RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>) {
+  return (unwrapData<RawAuthSessionResponse>(payload) ?? payload) as RawAuthSessionResponse
+}
+
 function applySession(session: AuthSessionPayload) {
   useAuthStore.getState().setSession(session)
   return session
 }
 
 export async function register(input: RegisterRequest) {
-  const payload = await apiClient.post<RawAuthSessionResponse>(
+  const payload = await apiClient.post<RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>>(
     '/api/auth/register',
     input,
     {
@@ -86,11 +92,11 @@ export async function register(input: RegisterRequest) {
     },
   )
 
-  return applySession(normalizeAuthSession(payload))
+  return applySession(normalizeAuthSession(extractAuthPayload(payload)))
 }
 
 export async function login(input: LoginRequest) {
-  const payload = await apiClient.post<RawAuthSessionResponse>(
+  const payload = await apiClient.post<RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>>(
     '/api/auth/login',
     input,
     {
@@ -98,11 +104,11 @@ export async function login(input: LoginRequest) {
     },
   )
 
-  return applySession(normalizeAuthSession(payload))
+  return applySession(normalizeAuthSession(extractAuthPayload(payload)))
 }
 
 export async function refreshSession(token?: string | null) {
-  const payload = await apiClient.post<RawAuthSessionResponse>(
+  const payload = await apiClient.post<RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>>(
     '/api/auth/refresh',
     undefined,
     {
@@ -112,7 +118,7 @@ export async function refreshSession(token?: string | null) {
     },
   )
 
-  return applySession(normalizeAuthSession(payload))
+  return applySession(normalizeAuthSession(extractAuthPayload(payload)))
 }
 
 export async function logout(token?: string | null) {

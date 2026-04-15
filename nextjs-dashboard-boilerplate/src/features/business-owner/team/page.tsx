@@ -178,7 +178,7 @@ export default function TeamPage() {
   return (
     <div className="space-y-8">
       <DashboardHeader
-        title="Organizer Team"
+        title="Users & Roles"
         description="Manage organizer profile, staff, and role definitions from the backend API"
       />
 

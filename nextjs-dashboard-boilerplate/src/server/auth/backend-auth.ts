@@ -24,6 +24,11 @@ type RawBackendAuthResponse = Partial<BackendAuthResponse> & {
   refreshExpiresAt?: string
   user?: Partial<BackendAuthUser> | null
 }
+type BackendEnvelope<T> = {
+  data?: T | null
+  meta?: Record<string, unknown>
+  message?: string
+}
 
 type BackendRefreshCookie = {
   name: string
@@ -122,7 +127,12 @@ async function parseResponseBody(response: Response) {
 }
 
 function normalizeBackendAuthResponse(payload: unknown): BackendAuthResponse {
-  const data = (payload ?? {}) as RawBackendAuthResponse
+  const rawPayload = (payload ?? {}) as RawBackendAuthResponse | BackendEnvelope<RawBackendAuthResponse>
+  const candidateData =
+    rawPayload && typeof rawPayload === 'object' && 'data' in rawPayload
+      ? (rawPayload as BackendEnvelope<RawBackendAuthResponse>).data ?? {}
+      : rawPayload
+  const data = candidateData as RawBackendAuthResponse
   const accessToken = data.accessToken ?? data.token
   const accessTokenExpiresAt = data.accessTokenExpiresAt ?? data.expiresAt
   const refreshTokenExpiresAt =

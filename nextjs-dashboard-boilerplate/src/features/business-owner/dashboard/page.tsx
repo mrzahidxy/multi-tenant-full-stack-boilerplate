@@ -41,29 +41,46 @@ type DashboardStatCard = Omit<StatCardProps, 'className'>
 function buildDashboardStats(
   overview: DashboardOverviewResponse,
 ): DashboardStatCard[] {
+  const bookingSummary = overview.bookingSummary ?? {
+    totalBookings: 0,
+    averageOrderValue: 0,
+  }
+  const paymentSummary = overview.paymentSummary ?? {
+    totalRevenue: 0,
+    totalPayments: 0,
+  }
+  const eventSummary = overview.eventSummary ?? {
+    totalEvents: 0,
+    publishedEvents: 0,
+  }
+  const userSummary = overview.userSummary ?? {
+    totalScopedUsers: 0,
+    registrationsInRange: 0,
+  }
+
   return [
     {
       label: 'Revenue',
-      value: formatCurrency(overview.paymentSummary.totalRevenue),
-      helper: `AOV ${formatCurrency(overview.bookingSummary.averageOrderValue)}`,
+      value: formatCurrency(paymentSummary.totalRevenue),
+      helper: `AOV ${formatCurrency(bookingSummary.averageOrderValue)}`,
       icon: <Wallet className="h-5 w-5" />,
     },
     {
       label: 'Bookings',
-      value: overview.bookingSummary.totalBookings.toLocaleString(),
-      helper: `Payments ${overview.paymentSummary.totalPayments.toLocaleString()}`,
+      value: bookingSummary.totalBookings.toLocaleString(),
+      helper: `Payments ${paymentSummary.totalPayments.toLocaleString()}`,
       icon: <Receipt className="h-5 w-5" />,
     },
     {
       label: 'Events',
-      value: overview.eventSummary.totalEvents.toLocaleString(),
-      helper: `Published ${overview.eventSummary.publishedEvents.toLocaleString()}`,
+      value: eventSummary.totalEvents.toLocaleString(),
+      helper: `Published ${eventSummary.publishedEvents.toLocaleString()}`,
       icon: <Activity className="h-5 w-5" />,
     },
     {
       label: 'Users',
-      value: overview.userSummary.totalScopedUsers.toLocaleString(),
-      helper: `Registrations ${overview.userSummary.registrationsInRange.toLocaleString()}`,
+      value: userSummary.totalScopedUsers.toLocaleString(),
+      helper: `Registrations ${userSummary.registrationsInRange.toLocaleString()}`,
       icon: <UsersRound className="h-5 w-5" />,
     },
   ]
@@ -143,7 +160,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <DashboardHeader
         title="Dashboard"
-        description="Live organizer overview from the Express analytics API"
+        description="At-a-glance organizer overview from the Express analytics API"
       />
 
       {!hasOrganizerScope && status !== 'loading' ? (

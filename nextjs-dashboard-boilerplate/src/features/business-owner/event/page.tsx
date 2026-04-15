@@ -34,6 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { formatCurrency } from '@/lib/format'
 
 const organizerEventFormSchema = z
   .object({
@@ -224,29 +225,45 @@ export default function EventPage() {
                 Loading organizer events...
               </div>
             ) : events.length ? (
-              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Published</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-[180px] text-right">Actions</TableHead>
+                      <TableHead className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Name
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Published
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Price
+                      </TableHead>
+                      <TableHead className="px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Description
+                      </TableHead>
+                      <TableHead className="w-[180px] px-4 py-3 text-right text-sm font-semibold uppercase tracking-wide text-slate-500">
+                        Actions
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {events.map((event) => (
                       <TableRow key={event.id}>
-                        <TableCell className="font-medium">{event.name}</TableCell>
-                        <TableCell>
+                        <TableCell className="px-4 py-4 text-sm font-medium text-slate-900">
+                          {event.name}
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-slate-600">
                           <Badge variant={event.isPublished ? 'success' : 'outline'}>
                             {event.isPublished ? 'Published' : 'Draft'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{event.price}</TableCell>
-                        <TableCell className="max-w-[240px] truncate">{event.description || '—'}</TableCell>
-                        <TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-slate-600">
+                          {formatCurrency(event.price ?? 0)}
+                        </TableCell>
+                        <TableCell className="max-w-[240px] px-4 py-4 text-sm text-slate-600">
+                          <span className="block truncate">{event.description || '—'}</span>
+                        </TableCell>
+                        <TableCell className="px-4 py-4 text-sm text-slate-600">
                           <div className="flex items-center justify-end gap-2">
                             {canManageOrganizer ? (
                               <>

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 
 import { authService } from '../services/auth.service';
 import type { AuthenticatedRequest } from '../types/http';
+import { successResponse } from '../utils/api-response';
 import { clearRefreshTokenCookie, setRefreshTokenCookie } from '../utils/auth-cookies';
 import { env } from '../utils/env';
 
@@ -19,12 +20,17 @@ export const authController = {
 
     setRefreshTokenCookie(res, result.refreshToken.token, result.refreshToken.expiresAt);
 
-    res.status(201).json({
-      accessToken: result.accessToken,
-      accessTokenExpiresAt: result.accessTokenExpiresAt,
-      refreshTokenExpiresAt: result.refreshToken.expiresAt,
-      user: result.user,
-    });
+    res.status(201).json(
+      successResponse(
+        {
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt,
+          refreshTokenExpiresAt: result.refreshToken.expiresAt,
+          user: result.user,
+        },
+        { message: 'Registration successful' }
+      )
+    );
   },
 
   login: async (req: AuthenticatedRequest, res: Response) => {
@@ -32,12 +38,17 @@ export const authController = {
 
     setRefreshTokenCookie(res, result.refreshToken.token, result.refreshToken.expiresAt);
 
-    res.status(200).json({
-      accessToken: result.accessToken,
-      accessTokenExpiresAt: result.accessTokenExpiresAt,
-      refreshTokenExpiresAt: result.refreshToken.expiresAt,
-      user: result.user,
-    });
+    res.status(200).json(
+      successResponse(
+        {
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt,
+          refreshTokenExpiresAt: result.refreshToken.expiresAt,
+          user: result.user,
+        },
+        { message: 'Login successful' }
+      )
+    );
   },
 
   refresh: async (req: Request, res: Response) => {
@@ -47,12 +58,17 @@ export const authController = {
 
     setRefreshTokenCookie(res, result.refreshToken.token, result.refreshToken.expiresAt);
 
-    res.status(200).json({
-      accessToken: result.accessToken,
-      accessTokenExpiresAt: result.accessTokenExpiresAt,
-      refreshTokenExpiresAt: result.refreshToken.expiresAt,
-      user: result.user,
-    });
+    res.status(200).json(
+      successResponse(
+        {
+          accessToken: result.accessToken,
+          accessTokenExpiresAt: result.accessTokenExpiresAt,
+          refreshTokenExpiresAt: result.refreshToken.expiresAt,
+          user: result.user,
+        },
+        { message: 'Session refreshed' }
+      )
+    );
   },
 
   logout: async (req: Request, res: Response) => {
@@ -65,6 +81,6 @@ export const authController = {
 
   me: async (req: AuthenticatedRequest, res: Response) => {
     const user = await authService.getProfile(req.user!.id);
-    res.status(200).json(user);
+    res.status(200).json(successResponse(user));
   },
 };

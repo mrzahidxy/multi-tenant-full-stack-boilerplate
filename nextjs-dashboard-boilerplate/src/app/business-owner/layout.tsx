@@ -19,7 +19,7 @@ export default async function BusinessOwnerLayout({ children }: BusinessOwnerLay
 
   const role = normalizeUserRole(session.user.role)
 
-  if (role !== 'OWNER' && role !== 'STAFF' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+  if (role !== 'OWNER' && role !== 'STAFF' && role !== 'ADMIN') {
     redirect('/login' as Route)
   }
 

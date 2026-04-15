@@ -1,5 +1,4 @@
 export const USER_ROLE_VALUES = [
-  'SUPER_ADMIN',
   'ADMIN',
   'OWNER',
   'STAFF',
@@ -7,6 +6,7 @@ export const USER_ROLE_VALUES = [
 ] as const
 
 export const LEGACY_USER_ROLE_VALUES = [
+  'SUPER_ADMIN',
   'STUFFS',
   'GUESTS',
 ] as const
@@ -19,7 +19,6 @@ export const ACCEPTED_USER_ROLE_VALUES = [
 export type UserRole = (typeof USER_ROLE_VALUES)[number]
 
 export type CanonicalUserRole =
-  | 'SUPER_ADMIN'
   | 'ADMIN'
   | 'OWNER'
   | 'STAFF'
@@ -72,7 +71,6 @@ export type AppUser = {
 export type SafeUser = Omit<AppUser, 'passwordHash'>
 
 const ROLE_PERMISSIONS: Record<CanonicalUserRole, UserPermission[]> = {
-  SUPER_ADMIN: [...USER_PERMISSION_VALUES],
   ADMIN: [...USER_PERMISSION_VALUES],
   OWNER: [
     'ORGANIZER_CREATE',
@@ -126,7 +124,11 @@ export function normalizeUserRole(role?: string | null): CanonicalUserRole {
     return 'USER'
   }
 
-  if (normalized === 'SUPER_ADMIN' || normalized === 'ADMIN' || normalized === 'OWNER') {
+  if (normalized === 'SUPER_ADMIN' || normalized === 'ADMIN') {
+    return 'ADMIN'
+  }
+
+  if (normalized === 'OWNER') {
     return normalized
   }
 
@@ -135,7 +137,7 @@ export function normalizeUserRole(role?: string | null): CanonicalUserRole {
 
 export function isAdminRole(role?: string | null) {
   const normalized = normalizeUserRole(role)
-  return normalized === 'SUPER_ADMIN' || normalized === 'ADMIN'
+  return normalized === 'ADMIN'
 }
 
 export function isOwnerRole(role?: string | null) {

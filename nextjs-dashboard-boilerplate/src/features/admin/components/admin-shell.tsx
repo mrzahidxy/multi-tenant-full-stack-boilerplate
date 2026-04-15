@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, getInitials } from '@/lib/utils';
 
 
 const navItems = [
@@ -52,12 +52,7 @@ type AdminShellProps = {
 export function AdminShell({ children, user }: AdminShellProps) {
   const pathname = usePathname()
 
-  const initials =
-    user.name
-      ?.split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase() || 'SA'
+  const initials = getInitials(user.name, 2) || 'SA'
 
   return (
     <div className="min-h-screen bg-background">

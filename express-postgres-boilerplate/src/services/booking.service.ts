@@ -11,6 +11,7 @@ import { prisma } from '../utils/prisma';
 import { AuthenticatedUser } from '../types/user';
 import { cache } from '../utils/cache';
 import { logger } from '../utils/logger';
+import { resolveOrganizerTenantScope } from './tenant-scope.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -241,44 +242,29 @@ const resolveBookingListScope = async (actor: AuthenticatedUser): Promise<Bookin
     };
   }
 
-  if (actor.role === Role.OWNER) {
-    const ownedOrganizerId =
-      actor.organizerId ??
-      (
-        await prisma.organizer.findUnique({
-          where: { ownerId: actor.id },
-          select: { id: true },
-        })
-      )?.id ??
-      null;
-
-    if (!ownedOrganizerId) {
-      throw new HttpError(403, 'Owner bookings require an owned organizer');
-    }
-
-    return {
-      where: { event: { organizerId: ownedOrganizerId } },
-      cacheScope: `organizer:${ownedOrganizerId}`,
-    };
-  }
-
-  if (actor.role === Role.STAFF) {
-    const assignments = await prisma.organizerStaff.findMany({
-      where: { userId: actor.id },
-      select: { organizerId: true },
+  if (actor.role === Role.OWNER || actor.role === Role.STAFF) {
+    const organizerScope = await resolveOrganizerTenantScope({ prisma }, actor, {
+      allowAdminPlatform: false,
+      ownerNoOrganizerMessage: 'Owner bookings require an owned organizer',
+      staffNoAssignmentsMessage: 'Staff bookings require at least one organizer assignment',
+      forbiddenMessage: 'You do not have permission to access these bookings',
     });
 
-    const organizerIds = assignments.map((assignment) => assignment.organizerId);
+    if (organizerScope.organizerIds.length === 1) {
+      const cacheScope =
+        actor.role === Role.STAFF
+          ? `organizers:${organizerScope.organizerIds[0]}`
+          : organizerScope.cacheScope;
 
-    if (organizerIds.length === 0) {
-      throw new HttpError(403, 'Staff bookings require at least one organizer assignment');
+      return {
+        where: { event: { organizerId: organizerScope.organizerIds[0] } },
+        cacheScope,
+      };
     }
 
-    const cacheScope = `organizers:${organizerIds.slice().sort().join(',')}`;
-
     return {
-      where: { event: { organizerId: { in: organizerIds } } },
-      cacheScope,
+      where: { event: { organizerId: { in: organizerScope.organizerIds } } },
+      cacheScope: `organizers:${organizerScope.organizerIds.slice().sort().join(',')}`,
     };
   }
 

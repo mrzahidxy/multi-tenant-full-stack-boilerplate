@@ -6,8 +6,8 @@ import { normalizeUserRole } from '@/types/user'
 const AUTH_ROUTES = new Set<string>(['login', 'register'])
 
 const ROUTE_ROLES: Record<string, ReadonlySet<string>> = {
-  admin: new Set(['SUPER_ADMIN', 'ADMIN']),
-  'business-owner': new Set(['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF']),
+  admin: new Set(['ADMIN']),
+  'business-owner': new Set(['ADMIN', 'OWNER', 'STAFF']),
 }
 
 function firstSegment(pathname: string) {

@@ -20,7 +20,10 @@ const analyticsLimiter = rateLimit({
 const router = Router();
 
 router.use(
-  requireAuth([Role.ADMIN, Role.OWNER, Role.STAFF]),
+  requireAuth({
+    roles: [Role.ADMIN, Role.OWNER, Role.STAFF],
+    permissions: ['ANALYTICS_READ'],
+  }),
   analyticsLimiter
 );
 

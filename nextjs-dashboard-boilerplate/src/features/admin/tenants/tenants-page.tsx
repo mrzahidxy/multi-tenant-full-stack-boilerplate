@@ -15,6 +15,7 @@ import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { formatDate } from '@/lib/format'
+import { slugify } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,10 +33,6 @@ import { createOrganizer } from '@/features/business-owner/team/api/organizer-cl
 import { TenantToolbar } from './components/tenant-toolbar'
 import { useTenantDirectory } from './hooks/use-tenant-directory'
 import type { Tenant } from './tenant-detail-drawer'
-
-function slugify(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-}
 
 export function TenantsPage() {
   const queryClient = useQueryClient()

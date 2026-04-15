@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, CreditCard, UsersRound, Wallet } from 'lucide-react'
+import { Activity, Receipt, UsersRound, Wallet } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -65,7 +65,7 @@ function StatCardSkeleton() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center text-sm text-slate-500">
+    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
       {message}
     </div>
   )
@@ -141,7 +141,7 @@ export default function AnalyticsPage() {
 
     return [
       {
-        label: 'Total Revenue',
+        label: 'Revenue',
         value: formatCurrency(overview.paymentSummary.totalRevenue),
         helper: `Success ${overview.paymentSummary.successRate.toFixed(1)}%`,
         icon: <Wallet className="h-5 w-5" />,
@@ -150,13 +150,13 @@ export default function AnalyticsPage() {
         label: 'Bookings',
         value: overview.bookingSummary.totalBookings.toLocaleString(),
         helper: `AOV ${formatCurrency(overview.bookingSummary.averageOrderValue)}`,
-        icon: <Activity className="h-5 w-5" />,
+        icon: <Receipt className="h-5 w-5" />,
       },
       {
         label: 'Events',
         value: overview.eventSummary.totalEvents.toLocaleString(),
         helper: `Published ${overview.eventSummary.publishedEvents.toLocaleString()}`,
-        icon: <CreditCard className="h-5 w-5" />,
+        icon: <Activity className="h-5 w-5" />,
       },
       {
         label: 'Users',
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
     <div className="space-y-8">
       <DashboardHeader
         title="Analytics"
-        description="Organizer, booking, payment, event, and staff performance from the Express API"
+        description="Deep-dive organizer trends and performance breakdowns from the Express API"
         actions={
           <Select
             value={rangePreset}

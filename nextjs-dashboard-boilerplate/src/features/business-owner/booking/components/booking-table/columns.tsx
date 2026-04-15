@@ -1,8 +1,8 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Booking } from '@/types/booking';
 
@@ -82,20 +82,21 @@ export function createBookingColumns({
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
           <Link
-            className="inline-flex items-center gap-1 text-sm font-semibold text-sky-600 hover:text-sky-500"
             href={`/business-owner/bookings/${row.original.id}`}
+            className={cn(
+              'inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors',
+              'hover:border-teal-300 hover:text-teal-600',
+            )}
           >
-            <Pencil className="h-3.5 w-3.5" />
             Edit
           </Link>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="text-rose-600 hover:text-rose-500"
+            className="text-rose-600 hover:border-rose-200 hover:text-rose-600"
             onClick={() => onDelete(row.original.id)}
             disabled={isDeleting}
           >
-            <Trash2 className="mr-1 h-3.5 w-3.5" />
             Delete
           </Button>
         </div>

@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/features/admin/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { getInitials, toTitleCase } from '@/lib/utils'
 
 type UserMenuProps = {
   name?: string | null
@@ -20,24 +21,11 @@ type UserMenuProps = {
 
 const formatRole = (role?: string | null) => {
   if (!role) return 'Organizer'
-  return role
-    .split('-')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-const initialsFor = (name?: string | null) => {
-  if (!name) return 'EN'
-  const matches = name.trim().split(/\s+/)
-  if (matches.length === 0) return 'EN'
-  return matches
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('')
-    .slice(0, 2)
+  return toTitleCase(role)
 }
 
 export function UserMenu({ name, email, role }: UserMenuProps) {
-  const initials = useMemo(() => initialsFor(name), [name])
+  const initials = useMemo(() => getInitials(name ?? '', 2) || 'EN', [name])
   const displayName = name ?? 'Avery Booker'
   const displayEmail = email ?? 'organizer@example.com'
   const displayRole = formatRole(role)
