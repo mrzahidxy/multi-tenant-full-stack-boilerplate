@@ -2,6 +2,26 @@ import 'dotenv/config';
 
 import { z } from 'zod';
 
+const envBoolean = (defaultValue: boolean) =>
+  z.preprocess(
+    (value) => {
+      if (value === undefined || value === null || value === '') {
+        return defaultValue ? 'true' : 'false';
+      }
+
+      if (typeof value === 'boolean') {
+        return value ? 'true' : 'false';
+      }
+
+      if (typeof value === 'string') {
+        return value.trim().toLowerCase();
+      }
+
+      return value;
+    },
+    z.enum(['true', 'false']).transform((flag) => flag === 'true')
+  );
+
 const baseEnvSchema = z.object({
   APP_NAME: z.string().default('Pern Boilerplate API'),
   APP_DESCRIPTION: z
@@ -18,7 +38,7 @@ const baseEnvSchema = z.object({
   REFRESH_TOKEN_COOKIE_NAME: z.string().default('refreshToken'),
   REFRESH_TOKEN_COOKIE_PATH: z.string().default('/api'),
   COOKIE_DOMAIN: z.string().optional(),
-  COOKIE_SECURE: z.coerce.boolean().default(false),
+  COOKIE_SECURE: envBoolean(false),
   COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
   JWT_ISSUER: z.string().default('pern-boilerplate'),
   JWT_AUDIENCE: z.string().optional(),
@@ -34,7 +54,7 @@ const baseEnvSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
   MAX_UPLOAD_SIZE: z.coerce.number().default(5 * 1024 * 1024),
-  TRUST_PROXY: z.coerce.boolean().default(false),
+  TRUST_PROXY: envBoolean(false),
   REDIS_URL: z.string().optional(),
 });
 
@@ -56,6 +76,14 @@ const envSchema = baseEnvSchema.superRefine((data, ctx) => {
       code: z.ZodIssueCode.custom,
       path: ['CORS_ORIGIN'],
       message: 'CORS_ORIGIN must list explicit origins in production',
+    });
+  }
+
+  if (data.COOKIE_SAME_SITE === 'none' && !data.COOKIE_SECURE) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['COOKIE_SECURE'],
+      message: 'COOKIE_SECURE must be true when COOKIE_SAME_SITE is none',
     });
   }
 });

@@ -60,13 +60,26 @@ function normalizeDate(
 
 export const bookingFormSchema = z.object({
   eventId: z.string().trim().optional(),
-  checkIn: z
-    .string()
-    .transform((val, ctx) => normalizeDate(val, ctx, 'checkIn')),
-  checkOut: z
-    .string()
-    .transform((val, ctx) => normalizeDate(val, ctx, 'checkOut')),
+  status: bookingStatusSchema.optional(),
+  checkIn: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .transform((val, ctx) => normalizeDate(val, ctx, 'checkIn'))
+      .optional(),
+  ),
+  checkOut: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z
+      .string()
+      .transform((val, ctx) => normalizeDate(val, ctx, 'checkOut'))
+      .optional(),
+  ),
 }).superRefine((data, ctx) => {
+  if (!data.checkIn || !data.checkOut) {
+    return
+  }
+
   const checkInDate = new Date(data.checkIn)
   const checkOutDate = new Date(data.checkOut)
 
@@ -89,6 +102,22 @@ export const bookingCreateFormSchema = bookingFormSchema.superRefine((data, ctx)
       code: z.ZodIssueCode.custom,
       path: ['eventId'],
       message: 'Please select an event',
+    })
+  }
+
+  if (!data.checkIn) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['checkIn'],
+      message: 'Check-in is required',
+    })
+  }
+
+  if (!data.checkOut) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['checkOut'],
+      message: 'Check-out is required',
     })
   }
 })

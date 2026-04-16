@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
@@ -61,10 +62,31 @@ export function BookingForm({
     resolver: zodResolver(schema),
     defaultValues: {
       eventId: defaultValues?.eventId ?? '',
-      checkIn: toDateInputValue(defaultValues?.checkIn),
-      checkOut: toDateInputValue(defaultValues?.checkOut),
+      status: defaultValues?.status ?? 'PENDING',
+      checkIn:
+        mode === 'create' ? toDateInputValue(defaultValues?.checkIn) : undefined,
+      checkOut:
+        mode === 'create' ? toDateInputValue(defaultValues?.checkOut) : undefined,
     },
   })
+
+  useEffect(() => {
+    form.reset({
+      eventId: defaultValues?.eventId ?? '',
+      status: defaultValues?.status ?? 'PENDING',
+      checkIn:
+        mode === 'create' ? toDateInputValue(defaultValues?.checkIn) : undefined,
+      checkOut:
+        mode === 'create' ? toDateInputValue(defaultValues?.checkOut) : undefined,
+    })
+  }, [
+    defaultValues?.eventId,
+    defaultValues?.status,
+    defaultValues?.checkIn,
+    defaultValues?.checkOut,
+    form,
+    mode,
+  ])
 
   const eventsQuery = useQuery({
     queryKey: organizerId ? organizerKeys.events(organizerId) : ['organizers', 'events', 'missing-organizer'],
@@ -89,11 +111,15 @@ export function BookingForm({
       }
 
       const payload = bookingUpdateFormSchema.parse(values)
+      const updatePayload: {
+        status?: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED'
+      } = {}
 
-      return updateBookingRequest(bookingId, {
-        checkIn: payload.checkIn,
-        checkOut: payload.checkOut,
-      })
+      if (payload.status) {
+        updatePayload.status = payload.status
+      }
+
+      return updateBookingRequest(bookingId, updatePayload)
     },
     onSuccess: () => {
       toast.success(
@@ -154,22 +180,41 @@ export function BookingForm({
         </FormField>
       ) : null}
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <FormField
-          label="Check-in Date"
-          error={form.formState.errors.checkIn?.message}
-          htmlFor="booking-check-in"
-        >
-          <Input id="booking-check-in" type="date" {...form.register('checkIn')} />
-        </FormField>
+      <div className={cn('grid gap-5', mode === 'edit' ? 'md:grid-cols-1' : 'md:grid-cols-2')}>
+        {mode === 'edit' ? (
+          <FormField
+            label="Status"
+            error={form.formState.errors.status?.message}
+            htmlFor="booking-status"
+          >
+            <Select id="booking-status" {...form.register('status')}>
+              <option value="PENDING">Pending</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </Select>
+          </FormField>
+        ) : null}
 
-        <FormField
-          label="Check-out Date"
-          error={form.formState.errors.checkOut?.message}
-          htmlFor="booking-check-out"
-        >
-          <Input id="booking-check-out" type="date" {...form.register('checkOut')} />
-        </FormField>
+        {mode === 'create' ? (
+          <FormField
+            label="Check-in Date"
+            error={form.formState.errors.checkIn?.message}
+            htmlFor="booking-check-in"
+          >
+            <Input id="booking-check-in" type="date" {...form.register('checkIn')} />
+          </FormField>
+        ) : null}
+
+        {mode === 'create' ? (
+          <FormField
+            label="Check-out Date"
+            error={form.formState.errors.checkOut?.message}
+            htmlFor="booking-check-out"
+          >
+            <Input id="booking-check-out" type="date" {...form.register('checkOut')} />
+          </FormField>
+        ) : null}
       </div>
 
       <footer className="flex items-center justify-end gap-3">

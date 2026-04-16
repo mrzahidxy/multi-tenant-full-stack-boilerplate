@@ -10,8 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
     "start:prod": "node dist/server.js",
-    "seed": "prisma db push && ts-node --project tsconfig.json prisma/seed.ts",
-    "db:setup": "npm run seed",
+    "seed": "ts-node --project tsconfig.json prisma/seed.ts",
+    "db:setup": "npm run prisma:migrate && npm run seed",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
@@ -76,6 +76,6 @@
     "typescript": "^5.7.3"
   },
   "prisma": {
-    "seed": "prisma db push && ts-node --project tsconfig.json prisma/seed.ts"
+    "seed": "ts-node --project tsconfig.json prisma/seed.ts"
   }
 }

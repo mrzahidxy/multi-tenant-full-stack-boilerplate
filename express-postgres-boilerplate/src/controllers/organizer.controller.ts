@@ -8,6 +8,7 @@ import type {
   CreateEventInput,
   UpdateEventInput,
   AssignStaffInput,
+  StaffCandidateQueryInput,
 } from '../schemas/organizer.schema';
 import type { UpdateOrganizerStatusInput } from '../schemas/admin.schema';
 import { successResponse } from '../utils/api-response';
@@ -92,6 +93,18 @@ export const organizerController = {
     const { organizerId } = req.params as { organizerId: string };
     const staff = await organizerService.listStaff(organizerId, req.user!);
     res.status(200).json(successResponse(staff));
+  },
+
+  listStaffCandidates: async (req: AuthenticatedRequest, res: Response) => {
+    const { organizerId } = req.params as { organizerId: string };
+    const query = req.query as unknown as StaffCandidateQueryInput;
+    const candidates = await organizerService.listStaffCandidates(
+      organizerId,
+      query.search,
+      req.user!,
+      query.limit,
+    );
+    res.status(200).json(successResponse(candidates));
   },
 
   assignStaff: async (req: AuthenticatedRequest, res: Response) => {

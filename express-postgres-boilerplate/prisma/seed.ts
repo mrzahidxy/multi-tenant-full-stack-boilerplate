@@ -84,6 +84,12 @@ const usersToSeed: SeedUser[] = [
     password: 'changeMeAdmin1!',
   },
   {
+    email: 'admin.audit@example.com',
+    name: 'Admin Auditor',
+    role: Role.ADMIN,
+    password: 'changeMeAdmin2!',
+  },
+  {
     email: primaryOwnerEmail,
     name: 'Organizer Owner',
     role: Role.OWNER,
@@ -100,6 +106,18 @@ const usersToSeed: SeedUser[] = [
     name: 'Suspended Organizer Owner',
     role: Role.OWNER,
     password: 'changeMeOwner3!',
+  },
+  {
+    email: 'owner4@example.com',
+    name: 'Independent Organizer Owner',
+    role: Role.OWNER,
+    password: 'changeMeOwner4!',
+  },
+  {
+    email: 'owner-no-organizer@example.com',
+    name: 'Owner Without Organizer',
+    role: Role.OWNER,
+    password: 'changeMeOwner5!',
   },
   {
     email: 'user1@example.com',
@@ -132,6 +150,18 @@ const usersToSeed: SeedUser[] = [
     password: 'changeMeUser5!',
   },
   {
+    email: 'user6@example.com',
+    name: 'Finley Carter',
+    role: Role.USER,
+    password: 'changeMeUser6!',
+  },
+  {
+    email: 'user7@example.com',
+    name: 'Harper Quinn',
+    role: Role.USER,
+    password: 'changeMeUser7!',
+  },
+  {
     email: 'staff1@example.com',
     name: 'Jordan Reyes',
     role: Role.STAFF,
@@ -142,6 +172,12 @@ const usersToSeed: SeedUser[] = [
     name: 'Taylor Brooks',
     role: Role.STAFF,
     password: 'changeMeStaff2!',
+  },
+  {
+    email: 'staff3@example.com',
+    name: 'Morgan Tate',
+    role: Role.STAFF,
+    password: 'changeMeStaff3!',
   },
 ];
 
@@ -222,6 +258,24 @@ const organizerSeeds: SeedOrganizer[] = [
         description: 'Seasonal market featuring local makers and food vendors.',
         price: 25,
         isPublished: true,
+      },
+    ],
+  },
+  {
+    name: 'Quiet Harbor Labs',
+    ownerEmail: 'owner4@example.com',
+    events: [
+      {
+        name: 'Beta Product Showcase',
+        description: 'Public showcase event used for isolated owner test flows.',
+        price: 89,
+        isPublished: true,
+      },
+      {
+        name: 'Owner Strategy Sprint',
+        description: 'Unpublished planning event for permission and owner-only tests.',
+        price: 129,
+        isPublished: false,
       },
     ],
   },
@@ -358,6 +412,58 @@ const bookingSeeds: SeedBooking[] = [
     status: BookingStatus.COMPLETED,
     notes: 'Completed product launch booking used for revenue reporting',
   },
+  {
+    key: 'booking-user1-maple-brunch-cancelled',
+    userEmail: 'user1@example.com',
+    organizerName: 'Maple Street Gatherings',
+    eventName: 'Neighborhood Brunch Social',
+    createdAt: isoDaysAgo(20, 9),
+    updatedAt: isoDaysAgo(19, 11),
+    checkIn: '2026-11-22T10:00:00.000Z',
+    checkOut: '2026-11-22T14:00:00.000Z',
+    totalPrice: 35,
+    status: BookingStatus.CANCELLED,
+    notes: 'Cancelled community booking for owner-side cancellation review',
+  },
+  {
+    key: 'booking-user2-retreat-confirmed',
+    userEmail: 'user2@example.com',
+    organizerName: 'Northwind Live',
+    eventName: 'Private Leadership Retreat',
+    createdAt: isoDaysAgo(7, 13),
+    updatedAt: isoDaysAgo(6, 10),
+    checkIn: '2026-12-11T09:00:00.000Z',
+    checkOut: '2026-12-12T18:00:00.000Z',
+    totalPrice: 299,
+    status: BookingStatus.CONFIRMED,
+    notes: 'Booking linked to an unpublished event for admin/owner visibility tests',
+  },
+  {
+    key: 'booking-user3-maple-market-completed',
+    userEmail: 'user3@example.com',
+    organizerName: 'Maple Street Gatherings',
+    eventName: 'Autumn Makers Market',
+    createdAt: isoDaysAgo(17, 10),
+    updatedAt: isoDaysAgo(16, 16),
+    checkIn: '2026-10-03T09:30:00.000Z',
+    checkOut: '2026-10-03T17:30:00.000Z',
+    totalPrice: 25,
+    status: BookingStatus.COMPLETED,
+    notes: 'Low-price completed booking for tenant-level analytics edge cases',
+  },
+  {
+    key: 'booking-user7-quiet-showcase-pending',
+    userEmail: 'user7@example.com',
+    organizerName: 'Quiet Harbor Labs',
+    eventName: 'Beta Product Showcase',
+    createdAt: isoDaysAgo(5, 12),
+    updatedAt: isoDaysAgo(4, 13),
+    checkIn: '2026-09-07T12:00:00.000Z',
+    checkOut: '2026-09-07T18:00:00.000Z',
+    totalPrice: 89,
+    status: BookingStatus.PENDING,
+    notes: 'Pending booking intentionally left without payment for manual flow tests',
+  },
 ];
 
 const paymentSeeds: SeedPayment[] = [
@@ -458,6 +564,36 @@ const paymentSeeds: SeedPayment[] = [
     stripeSessionId: 'seed_session_user5_expo_completed',
     stripePaymentIntentId: 'seed_pi_user5_expo_completed',
   },
+  {
+    bookingKey: 'booking-user1-maple-brunch-cancelled',
+    amount: 35,
+    currency: 'usd',
+    status: PaymentStatus.FAILED,
+    createdAt: isoDaysAgo(20, 9),
+    updatedAt: isoDaysAgo(19, 11),
+    stripeSessionId: 'seed_session_user1_maple_brunch_cancelled',
+    stripePaymentIntentId: 'seed_pi_user1_maple_brunch_cancelled',
+  },
+  {
+    bookingKey: 'booking-user2-retreat-confirmed',
+    amount: 299,
+    currency: 'usd',
+    status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(7, 13),
+    updatedAt: isoDaysAgo(6, 10),
+    stripeSessionId: 'seed_session_user2_retreat_confirmed',
+    stripePaymentIntentId: 'seed_pi_user2_retreat_confirmed',
+  },
+  {
+    bookingKey: 'booking-user3-maple-market-completed',
+    amount: 25,
+    currency: 'usd',
+    status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(17, 10),
+    updatedAt: isoDaysAgo(16, 16),
+    stripeSessionId: 'seed_session_user3_maple_market_completed',
+    stripePaymentIntentId: 'seed_pi_user3_maple_market_completed',
+  },
 ];
 
 const guestBookingSeeds: SeedGuestBooking[] = [
@@ -480,6 +616,16 @@ const guestBookingSeeds: SeedGuestBooking[] = [
     guestCount: 6,
     status: BookingStatus.CONFIRMED,
     notes: '[seed-guest-booking-2] Large-party guest reservation for admin review',
+  },
+  {
+    fullName: 'Olivia Cruz',
+    email: 'olivia.cruz@example.com',
+    phone: '+1 555 224 0090',
+    bookingDate: '2026-11-17',
+    bookingTime: '19:15',
+    guestCount: 4,
+    status: BookingStatus.CANCELLED,
+    notes: '[seed-guest-booking-3] Cancelled guest reservation for dashboard edge-case testing',
   },
 ];
 
@@ -552,6 +698,19 @@ async function ensureSchemaIsCurrent(): Promise<void> {
       'Database schema is outdated: missing guest-booking columns on Booking. Run `npm run prisma:push` and then retry seeding.'
     );
   }
+}
+
+async function resetSeedData(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "Payment",
+      "Booking",
+      "OrganizerStaff",
+      "Event",
+      "Organizer",
+      "User"
+    RESTART IDENTITY CASCADE
+  `);
 }
 
 async function upsertOrganizer(name: string, ownerId: number) {
@@ -766,6 +925,7 @@ async function upsertGuestBooking(guestBooking: SeedGuestBooking) {
 
 async function main(): Promise<void> {
   await ensureSchemaIsCurrent();
+  await resetSeedData();
 
   const usersByEmail = new Map<string, Awaited<ReturnType<typeof upsertUser>>>();
 
@@ -875,13 +1035,32 @@ async function main(): Promise<void> {
     `Seeded guest bookings: ${guestBookingSeeds.length} (shared Booking table, no auth required)`
   );
   console.info(`Seeded payments: ${paymentSeeds.length}`);
-  console.info('Business owner test login:');
+  console.info('Business owner test logins:');
   console.info(`  email: ${primaryOwnerEmail}`);
-  console.info(`  password: ${primaryOwnerPassword}`);
+  console.info('  password: (from SEED_OWNER_PASSWORD or changeMeOwner1!)');
   console.info('  organizer: Northwind Live');
+  console.info('  email: owner2@example.com');
+  console.info('  password: changeMeOwner2!');
+  console.info('  organizer: Blue Harbor Events (suspended)');
+  console.info('  email: owner4@example.com');
+  console.info('  password: changeMeOwner4!');
+  console.info('  organizer: Quiet Harbor Labs');
+  console.info('  email: owner-no-organizer@example.com');
+  console.info('  password: changeMeOwner5!');
+  console.info('  organizer: none (permission edge-case)');
   console.info('Admin test login:');
   console.info('  email: admin@example.com');
   console.info('  password: changeMeAdmin1!');
+  console.info('  email: admin.audit@example.com');
+  console.info('  password: changeMeAdmin2!');
+  console.info('Staff test logins:');
+  console.info('  email: staff1@example.com / password: changeMeStaff1! (single-tenant visibility)');
+  console.info('  email: staff2@example.com / password: changeMeStaff2! (multi-tenant visibility)');
+  console.info('  email: staff3@example.com / password: changeMeStaff3! (unassigned edge-case)');
+  console.info('User test logins:');
+  console.info('  email: user1@example.com / password: changeMeUser1! (mixed booking statuses)');
+  console.info('  email: user6@example.com / password: changeMeUser6! (no bookings edge-case)');
+  console.info('  email: user7@example.com / password: changeMeUser7! (pending booking without payment)');
 }
 
 main()

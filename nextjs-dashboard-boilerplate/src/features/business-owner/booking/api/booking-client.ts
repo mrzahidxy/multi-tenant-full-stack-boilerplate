@@ -33,6 +33,7 @@ export type CreateBookingRequest = {
 export type UpdateBookingRequest = {
   checkIn?: string
   checkOut?: string
+  status?: BookingStatus
 }
 
 function normalizeBookingFilters(filters: ListBookingsParams = {}) {

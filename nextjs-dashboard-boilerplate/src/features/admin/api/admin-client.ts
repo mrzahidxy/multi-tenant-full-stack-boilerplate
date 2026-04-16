@@ -138,9 +138,31 @@ function toNumberValue(value: unknown, fallback = 0) {
   return fallback
 }
 
+function slugifyValue(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function normalizeAdminLicense(entry: unknown): AdminLicense {
   const record = toObject(entry)
   const organizerRecord = toObject(record?.organizer)
+  const organizerId = toStringValue(record?.organizerId ?? organizerRecord?.id)
+  const organizerName = toStringValue(
+    record?.organizerName ?? record?.organizer ?? record?.name,
+    'Unknown organizer',
+  )
+  const licenseKey =
+    toStringValue(record?.key ?? record?.licenseKey) ||
+    (organizerId ? `LIC-${organizerId.replace(/-/g, '').slice(0, 12).toUpperCase()}` : '—')
+  const domainValue =
+    toStringValue(record?.domain) ||
+    (organizerName && organizerName !== 'Unknown organizer'
+      ? `${slugifyValue(organizerName)}.local`
+      : '—')
+  const paymentReference = toStringValue(record?.paymentId ?? record?.paymentReference, '—')
   const rawStatus = toStringValue(record?.status ?? record?.licenseStatus, 'Pending').toLowerCase()
   const normalizedStatus =
     rawStatus === 'active'
@@ -153,13 +175,10 @@ function normalizeAdminLicense(entry: unknown): AdminLicense {
 
   return {
     id: toStringValue(record?.id),
-    organizerId: toStringValue(record?.organizerId ?? organizerRecord?.id),
-    key: toStringValue(record?.key),
-    domain: toStringValue(record?.domain, '—'),
-    organizer: toStringValue(
-      record?.organizerName ?? record?.organizer ?? record?.name,
-      'Unknown organizer',
-    ),
+    organizerId,
+    key: licenseKey,
+    domain: domainValue,
+    organizer: organizerName,
     ownerEmail: toStringValue(toObject(record?.owner)?.email, ''),
     plan: toStringValue(record?.plan, '—').replace(/\b\w/g, (char) => char.toUpperCase()),
     activationDate: toStringValue(
@@ -167,7 +186,7 @@ function normalizeAdminLicense(entry: unknown): AdminLicense {
       '',
     ),
     renewalDate: toStringValue(record?.renewalDate),
-    paymentId: toStringValue(record?.paymentId ?? record?.paymentReference, '—'),
+    paymentId: paymentReference,
     status: normalizedStatus,
     seatsUsed: toNumberValue(record?.seatsUsed, 0),
     seatsLimit: toNumberValue(record?.seatsLimit, 0),

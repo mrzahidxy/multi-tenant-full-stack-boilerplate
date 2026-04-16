@@ -9,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -37,14 +36,6 @@ export function createUsersColumns({
   isMutatingAction,
   isRoleUpdating,
 }: CreateUsersColumnsOptions): ColumnDef<DirectoryUser>[] {
-  const handleCopyId = (id: string) => {
-    if (typeof navigator !== 'undefined') {
-      navigator.clipboard.writeText(id).catch(() => {
-        // ignore copy failures
-      })
-    }
-  }
-
   return [
     {
       accessorKey: 'email',
@@ -88,10 +79,6 @@ export function createUsersColumns({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleCopyId(user.id)}>
-                  Copy user ID
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger disabled={disableManagement}>
                     Change role
@@ -112,7 +99,6 @@ export function createUsersColumns({
                     ))}
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => onRequestAction(user, 'delete')}
                   className="text-rose-600 focus:text-rose-600"

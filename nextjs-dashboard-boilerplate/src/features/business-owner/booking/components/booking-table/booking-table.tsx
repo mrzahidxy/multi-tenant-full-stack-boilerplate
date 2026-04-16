@@ -1,12 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
 import { DataTable } from '@/components/data-table'
 import type { PaginatedResult, Booking } from '@/types/booking'
 
 import { BookingTableHeader } from './booking-table-header'
-import { BookingModal } from './booking-modal'
 import { createBookingColumns } from './columns'
 import { useBookingTable } from './use-booking-table'
 
@@ -15,8 +14,6 @@ type BookingTableProps = {
 }
 
 export function BookingTable({ initialData }: BookingTableProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
   const {
     sorting,
     setSorting,
@@ -35,13 +32,10 @@ export function BookingTable({ initialData }: BookingTableProps) {
     setCheckInDate,
     setCheckOutDate,
     reset,
-    createBooking,
-    isCreating,
     isDeleting,
     deleteBooking,
   } = useBookingTable({
     initialData,
-    onCreateSuccess: () => setIsModalOpen(false),
   })
 
   const columns = useMemo(
@@ -65,7 +59,6 @@ export function BookingTable({ initialData }: BookingTableProps) {
         onCheckInDateChange={setCheckInDate}
         onCheckOutDateChange={setCheckOutDate}
         onReset={reset}
-        onCreate={() => setIsModalOpen(true)}
       />
 
       <DataTable
@@ -83,14 +76,7 @@ export function BookingTable({ initialData }: BookingTableProps) {
           onPageSizeChange: (size) => setPageSize(size),
           pageSizeOptions: [5, 10, 20, 50],
         }}
-        emptyMessage="No bookings match your filters yet. Create one to get started."
-      />
-
-      <BookingModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        title="Create booking"
-        onSubmit={(values) => createBooking(values)}
+        emptyMessage="No bookings match your filters yet."
       />
     </section>
   )

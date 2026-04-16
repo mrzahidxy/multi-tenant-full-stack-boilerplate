@@ -84,15 +84,13 @@ function applySession(session: AuthSessionPayload) {
 }
 
 export async function register(input: RegisterRequest) {
-  const payload = await apiClient.post<RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>>(
+  await apiClient.post<RawAuthSessionResponse | ApiEnvelope<RawAuthSessionResponse>>(
     '/api/auth/register',
     input,
     {
       withCredentials: true,
     },
   )
-
-  return applySession(normalizeAuthSession(extractAuthPayload(payload)))
 }
 
 export async function login(input: LoginRequest) {

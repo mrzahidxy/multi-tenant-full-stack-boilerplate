@@ -2,14 +2,12 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { getSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
 import { authRoutes } from '@/auth/routes'
-import { getDefaultRedirectForRole } from '@/auth/routes'
 import { register as registerUser } from '@/features/auth/api/auth-client'
 import { registerSchema } from '@/validation/auth-schema'
 
@@ -34,24 +32,9 @@ export function RegisterForm() {
 
   const mutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: async (_, variables) => {
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: variables.email,
-        password: variables.password,
-      })
-
-      if (result?.error) {
-        toast.success('Account created. Sign in to continue.')
-        router.push(authRoutes.signInPath)
-        return
-      }
-
-      const session = await getSession()
-      const destination = getDefaultRedirectForRole(session?.user?.role)
-
-      toast.success('Account created.')
-      router.replace(destination)
+    onSuccess: () => {
+      toast.success('Account created. Sign in to continue.')
+      router.push(authRoutes.signInPath)
     },
     onError: (error) => {
       toast.error(

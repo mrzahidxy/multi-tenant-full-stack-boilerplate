@@ -93,6 +93,12 @@ function normalizeUserRole(value: unknown): AdminUserRole {
   return 'USER'
 }
 
+function normalizeUserStatus(value: unknown): AdminUserStatus {
+  return toStringValue(value, 'ACTIVE').toUpperCase() === 'INACTIVE'
+    ? 'INACTIVE'
+    : 'ACTIVE'
+}
+
 function normalizeAdminUser(entry: unknown): AdminUser {
   const record = toObject(entry)
 
@@ -103,8 +109,13 @@ function normalizeAdminUser(entry: unknown): AdminUser {
     name: toStringValue(record?.name) || null,
     organizerId: toStringValue(record?.organizerId) || null,
     organizerName: toStringValue(record?.organizerName) || null,
+    business:
+      toStringValue(record?.business) ||
+      toStringValue(record?.organizerName) ||
+      null,
     permissions: toArray(record?.permissions).map((value) => toStringValue(value)),
     role: normalizeUserRole(record?.role),
+    status: normalizeUserStatus(record?.status),
     updatedAt: toStringValue(record?.updatedAt),
   }
 }

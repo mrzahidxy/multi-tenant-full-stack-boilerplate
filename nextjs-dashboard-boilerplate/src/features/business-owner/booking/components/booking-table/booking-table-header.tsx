@@ -14,7 +14,6 @@ type BookingTableHeaderProps = {
   onCheckInDateChange: (value: string) => void
   onCheckOutDateChange: (value: string) => void
   onReset: () => void
-  onCreate: () => void
 }
 
 export function BookingTableHeader({
@@ -27,65 +26,66 @@ export function BookingTableHeader({
   onCheckInDateChange,
   onCheckOutDateChange,
   onReset,
-  onCreate,
 }: BookingTableHeaderProps) {
   return (
     <header className="grid grid-cols-12 gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
-      <div className="col-span-10 flex flex-wrap items-center gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-slate-600">
-            Event name
-          </label>
+      <div className="col-span-12 grid grid-cols-1 items-end gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(240px,1.6fr)_minmax(200px,1fr)_170px_170px_auto]">
+        <div className="min-w-0 space-y-1">
+          <label className="text-sm font-medium text-slate-600">Event name</label>
           <Input
             placeholder="Search by event name..."
             value={propertyName}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               onPropertyNameChange(event.target.value)
             }
-            className="w-60"
+            className="w-full"
           />
         </div>
-        <Select
-          value={status}
-          onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-            onStatusChange(event.target.value as BookingStatus | 'all')
-          }
-          className="w-48"
-        >
-          <option value="all">All statuses</option>
-          <option value="CONFIRMED">Confirmed</option>
-          <option value="PENDING">Pending</option>
-          <option value="CANCELLED">Cancelled</option>
-          <option value="COMPLETED">Completed</option>
-        </Select>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Check-in:</label>
+
+        <div className="min-w-0 space-y-1">
+          <label className="text-sm font-medium text-slate-600">Status</label>
+          <Select
+            value={status}
+            onChange={(event: ChangeEvent<HTMLSelectElement>) =>
+              onStatusChange(event.target.value as BookingStatus | 'all')
+            }
+            className="w-full"
+          >
+            <option value="all">All statuses</option>
+            <option value="CONFIRMED">Confirmed</option>
+            <option value="PENDING">Pending</option>
+            <option value="CANCELLED">Cancelled</option>
+            <option value="COMPLETED">Completed</option>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-600">Check-in</label>
           <Input
             type="date"
             value={checkInDate}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               onCheckInDateChange(event.target.value)
             }
-            className="w-32"
+            className="w-full"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium">Check-out:</label>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-600">Check-out</label>
           <Input
             type="date"
             value={checkOutDate}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               onCheckOutDateChange(event.target.value)
             }
-            className="w-32"
+            className="w-full"
           />
         </div>
-        <Button variant="outline" onClick={onReset}>
+
+        <Button variant="outline" onClick={onReset} className="h-10 xl:self-end">
           Reset
         </Button>
-      </div>
-      <div className="col-span-2 flex justify-end">
-        <Button onClick={onCreate}>New booking</Button>
       </div>
     </header>
   )

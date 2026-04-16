@@ -33,6 +33,7 @@ const bookingListInclude = {
     select: {
       id: true,
       name: true,
+      price: true,
       isPublished: true,
       organizer: {
         select: {
@@ -61,6 +62,7 @@ const bookingDetailInclude = {
       id: true,
       name: true,
       description: true,
+      price: true,
       isPublished: true,
       organizer: {
         select: {
@@ -74,13 +76,6 @@ const bookingDetailInclude = {
 
 type BookingListItem = Prisma.BookingGetPayload<{ include: typeof bookingListInclude }>;
 type BookingDetail = Prisma.BookingGetPayload<{ include: typeof bookingDetailInclude }>;
-type EventPricingRow = {
-  id: string;
-  name: string;
-  organizerId: string;
-  price: Prisma.Decimal;
-  isPublished: boolean;
-};
 type PublicBookingEvent = {
   id: string;
   name: string;
@@ -99,6 +94,7 @@ type PublicBookingSubmission = {
   bookingTime: string | null;
   guestCount: number | null;
   notes: string | null;
+  totalPrice: Prisma.Decimal;
   status: BookingStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -227,6 +223,19 @@ const normalizeListFilters = (filters?: ListBookingsFilters): ListBookingsFilter
   };
 };
 
+type UserBookingHistoryItem = {
+  id: number;
+  eventId: string | null;
+  eventName: string | null;
+  bookingDate: Date | null;
+  bookingTime: string | null;
+  checkIn: Date | null;
+  checkOut: Date | null;
+  totalPrice: Prisma.Decimal | null;
+  status: BookingStatus;
+  createdAt: Date;
+};
+
 const resolveBookingListScope = async (actor: AuthenticatedUser): Promise<BookingListScope> => {
   if (actor.role === Role.ADMIN) {
     return {
@@ -274,6 +283,37 @@ const resolveBookingListScope = async (actor: AuthenticatedUser): Promise<Bookin
   };
 };
 
+const canAccessBookingDetail = async (
+  actor: AuthenticatedUser,
+  booking: BookingDetail
+): Promise<boolean> => {
+  if (actor.role === Role.ADMIN) {
+    return true;
+  }
+
+  if (actor.role === Role.USER) {
+    return booking.userId === actor.id;
+  }
+
+  if (actor.role === Role.OWNER || actor.role === Role.STAFF) {
+    const organizerScope = await resolveOrganizerTenantScope({ prisma }, actor, {
+      allowAdminPlatform: false,
+      ownerNoOrganizerMessage: 'Owner bookings require an owned organizer',
+      staffNoAssignmentsMessage: 'Staff bookings require at least one organizer assignment',
+      forbiddenMessage: 'You do not have permission to access these bookings',
+    });
+
+    const bookingOrganizerId = booking.event?.organizer?.id;
+    if (!bookingOrganizerId) {
+      return false;
+    }
+
+    return organizerScope.organizerIds.includes(bookingOrganizerId);
+  }
+
+  return booking.userId === actor.id;
+};
+
 const invalidateBookingCollections = async (userId: number) => {
   if (!cache.isConnectedToRedis()) {
     return;
@@ -302,8 +342,14 @@ export const bookingService = {
       select: {
         id: true,
         name: true,
+        price: true,
         organizerId: true,
         isPublished: true,
+        organizer: {
+          select: {
+            isSuspended: true,
+          },
+        },
       },
     });
 
@@ -317,6 +363,10 @@ export const bookingService = {
 
     if (!event.isPublished) {
       throw new HttpError(400, 'This event is not available for public booking');
+    }
+
+    if (event.organizer.isSuspended) {
+      throw new HttpError(403, 'This organizer is currently suspended');
     }
 
     const hasGuestDetails =
@@ -347,6 +397,7 @@ export const bookingService = {
         guestCount: input.guestCount,
         notes: input.notes ?? null,
         phone,
+        totalPrice: event.price,
         status: BookingStatus.PENDING,
         userId: actor?.id ?? null,
       },
@@ -362,6 +413,7 @@ export const bookingService = {
         bookingTime: true,
         guestCount: true,
         notes: true,
+        totalPrice: true,
         status: true,
         createdAt: true,
         updatedAt: true,
@@ -380,6 +432,7 @@ export const bookingService = {
       bookingTime: booking.bookingTime ?? input.bookingTime,
       guestCount: booking.guestCount ?? input.guestCount,
       notes: booking.notes ?? null,
+      totalPrice: booking.totalPrice ?? event.price,
       status: booking.status,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
@@ -499,13 +552,76 @@ export const bookingService = {
     }
   },
 
-  getById: async (bookingId: number, userId?: number, role?: Role): Promise<BookingDetail> => {
+  listUserHistory: async (
+    actor: AuthenticatedUser,
+    page: number = DEFAULT_PAGE,
+    limit: number = DEFAULT_LIMIT
+  ): Promise<PaginatedResponse<UserBookingHistoryItem>> => {
+    if (actor.role !== Role.USER) {
+      throw new HttpError(403, 'Booking history is only available for users');
+    }
+
+    const { page: currentPage, limit: currentLimit } = normalizePagination(page, limit);
+    const skip = (currentPage - 1) * currentLimit;
+
+    const where: Prisma.BookingWhereInput = { userId: actor.id };
+    const cacheKey = `bookings:user-history:${actor.id}:${currentPage}:${currentLimit}`;
+
+    if (cache.isConnectedToRedis()) {
+      const cached = await cache.get<PaginatedResponse<UserBookingHistoryItem>>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    const [bookings, totalItems] = await prisma.$transaction([
+      prisma.booking.findMany({
+        where,
+        select: {
+          id: true,
+          eventId: true,
+          eventName: true,
+          bookingDate: true,
+          bookingTime: true,
+          checkIn: true,
+          checkOut: true,
+          totalPrice: true,
+          status: true,
+          createdAt: true,
+        },
+        skip,
+        take: currentLimit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.booking.count({ where }),
+    ]);
+
+    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / currentLimit);
+
+    const response: PaginatedResponse<UserBookingHistoryItem> = {
+      data: bookings,
+      meta: {
+        page: currentPage,
+        limit: currentLimit,
+        totalItems,
+        totalPages,
+      },
+    };
+
+    if (cache.isConnectedToRedis()) {
+      await cache.set(cacheKey, response, CACHE_TTL_SECONDS);
+    }
+
+    return response;
+  },
+
+  getById: async (bookingId: number, actor: AuthenticatedUser): Promise<BookingDetail> => {
     const cacheKey = `booking:${bookingId}`;
 
     if (cache.isConnectedToRedis()) {
       const cached = await cache.get<BookingDetail>(cacheKey);
       if (cached) {
-        if (role !== Role.ADMIN && cached.userId !== userId) {
+        if (!(await canAccessBookingDetail(actor, cached))) {
           throw new HttpError(403, 'Forbidden');
         }
 
@@ -522,7 +638,7 @@ export const bookingService = {
       throw new HttpError(404, 'Booking not found');
     }
 
-    if (role !== Role.ADMIN && booking.userId !== userId) {
+    if (!(await canAccessBookingDetail(actor, booking))) {
       throw new HttpError(403, 'Forbidden');
     }
 
@@ -548,20 +664,41 @@ export const bookingService = {
       throw new HttpError(400, 'Check-out date must be after check-in date.');
     }
 
-    const [event] = await prisma.$queryRaw<EventPricingRow[]>`
-      SELECT
-        id,
-        name,
-        "organizerId",
-        price,
-        "isPublished"
-      FROM "Event"
-      WHERE id = ${input.eventId}
-      LIMIT 1
-    `;
+    const event = await prisma.event.findUnique({
+      where: { id: input.eventId },
+      select: {
+        id: true,
+        name: true,
+        organizerId: true,
+        price: true,
+        isPublished: true,
+        organizer: {
+          select: {
+            isSuspended: true,
+          },
+        },
+      },
+    });
 
     if (!event) {
       throw new HttpError(404, 'Event not found');
+    }
+
+    if (event.organizer.isSuspended) {
+      throw new HttpError(403, 'This organizer is currently suspended');
+    }
+
+    if (user.role === Role.OWNER || user.role === Role.STAFF) {
+      const organizerScope = await resolveOrganizerTenantScope({ prisma }, user, {
+        allowAdminPlatform: false,
+        ownerNoOrganizerMessage: 'Owner bookings require an owned organizer',
+        staffNoAssignmentsMessage: 'Staff bookings require at least one organizer assignment',
+        forbiddenMessage: 'You do not have permission to create bookings for this organizer',
+      });
+
+      if (!organizerScope.organizerIds.includes(event.organizerId)) {
+        throw new HttpError(403, 'You do not have permission to create bookings for this organizer');
+      }
     }
 
     if (user.role === Role.USER && !event.isPublished) {
@@ -588,18 +725,21 @@ export const bookingService = {
   },
 
   update: async (bookingId: number, input: UpdateBookingInput, user: AuthenticatedUser) => {
-    const existing = await prisma.booking.findUnique({ where: { id: bookingId } });
+    const existing = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: bookingDetailInclude,
+    });
 
     if (!existing) {
       throw new HttpError(404, 'Booking not found');
     }
 
-    if (!existing.userId || !existing.checkIn || !existing.checkOut) {
-      throw new HttpError(400, 'This booking cannot be updated through the authenticated booking flow');
+    if (!(await canAccessBookingDetail(user, existing))) {
+      throw new HttpError(403, 'Forbidden');
     }
 
-    if (user.role !== Role.ADMIN && existing.userId !== user.id) {
-      throw new HttpError(403, 'Forbidden');
+    if (input.status && user.role === Role.USER) {
+      throw new HttpError(403, 'You do not have permission to update booking status');
     }
 
     // Validate dates if provided
@@ -620,27 +760,48 @@ export const bookingService = {
       }
     }
 
+    const shouldUpdateDates = Boolean(input.checkIn || input.checkOut);
+
+    if (shouldUpdateDates && (!existing.checkIn || !existing.checkOut)) {
+      throw new HttpError(400, 'This booking does not support check-in/check-out updates');
+    }
+
     // Use existing dates if not provided
     const finalCheckIn = checkInDate || existing.checkIn;
     const finalCheckOut = checkOutDate || existing.checkOut;
 
-    if (finalCheckOut <= finalCheckIn) {
+    if (finalCheckIn && finalCheckOut && finalCheckOut <= finalCheckIn) {
       throw new HttpError(400, 'Check-out date must be after check-in date.');
+    }
+
+    const updateData: Prisma.BookingUpdateInput = {};
+
+    if (shouldUpdateDates) {
+      updateData.checkIn = finalCheckIn;
+      updateData.checkOut = finalCheckOut;
+    }
+
+    if (input.status) {
+      updateData.status = input.status;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new HttpError(400, 'No valid booking update fields provided');
     }
 
     const booking = await prisma.booking.update({
       where: { id: bookingId },
-      data: {
-        checkIn: finalCheckIn,
-        checkOut: finalCheckOut,
-      },
+      data: updateData,
     });
 
     if (cache.isConnectedToRedis()) {
-      await Promise.all([
-        cache.del(`booking:${bookingId}`),
-        invalidateBookingCollections(existing.userId),
-      ]);
+      const operations: Promise<unknown>[] = [cache.del(`booking:${bookingId}`)];
+
+      if (existing.userId) {
+        operations.push(invalidateBookingCollections(existing.userId));
+      }
+
+      await Promise.all(operations);
     }
 
     return booking;

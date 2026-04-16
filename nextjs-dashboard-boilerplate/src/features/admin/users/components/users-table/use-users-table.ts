@@ -55,13 +55,18 @@ function mapUserToDirectoryUser(user: AdminUser): DirectoryUser {
       : 'ACTIVE'
   const statusValue = normalizedStatus as AdminUserStatus
   const statusLabel = STATUS_LABELS[statusValue] ?? toTitleCase(statusValue)
+  const trimmedName = user.name?.trim() ?? ''
+  const derivedName = trimmedName || user.email.split('@')[0] || '—'
+  const organizerLabel = user.organizerName?.trim() || user.business?.trim() || '—'
 
   return {
     id: user.id,
     email: user.email,
+    name: derivedName,
+    organizer: organizerLabel,
     roleLabel: ROLE_LABELS[roleValue] ?? toTitleCase(roleValue),
     roleValue,
-    business: user.business?.trim() || '—',
+    business: organizerLabel,
     statusLabel,
     statusValue,
     createdDate: user.createdAt ? formatDate(user.createdAt) : '—',

@@ -7,4 +7,6 @@ export const organizerKeys = {
   events: (organizerId: string) =>
     [...baseKey, 'events', organizerId] as const,
   staff: (organizerId: string) => [...baseKey, 'staff', organizerId] as const,
+  staffCandidates: (organizerId: string, search: string) =>
+    [...baseKey, 'staff-candidates', organizerId, search] as const,
 }

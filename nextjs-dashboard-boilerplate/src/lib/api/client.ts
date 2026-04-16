@@ -334,6 +334,15 @@ export class ApiClient {
         await this.parseError(responseContext),
       )
 
+      if (
+        requiresAuth &&
+        response.status === 401 &&
+        typeof window !== 'undefined'
+      ) {
+        const { logoutForExpiredSession } = await import('@/lib/session-expiry')
+        void logoutForExpiredSession()
+      }
+
       if (this.onError) {
         await this.onError(error, responseContext, context)
       }

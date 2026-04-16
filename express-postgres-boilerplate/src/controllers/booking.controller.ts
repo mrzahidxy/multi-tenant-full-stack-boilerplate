@@ -2,7 +2,11 @@ import { Response } from 'express';
 
 import { bookingService } from '../services/booking.service';
 import type { AuthenticatedRequest } from '../types/http';
-import type { CreatePublicBookingInput, ListBookingsQuery } from '../schemas/booking.schema';
+import type {
+  CreatePublicBookingInput,
+  ListBookingsQuery,
+  UserBookingHistoryQuery,
+} from '../schemas/booking.schema';
 import { successResponse } from '../utils/api-response';
 
 const formatDate = (value: Date | string | null | undefined) =>
@@ -30,6 +34,7 @@ export const bookingController = {
           bookingTime: booking.bookingTime,
           guestCount: booking.guestCount,
           notes: booking.notes,
+          totalPrice: booking.totalPrice,
           status: booking.status,
           createdAt: booking.createdAt,
           updatedAt: booking.updatedAt,
@@ -58,9 +63,35 @@ export const bookingController = {
       .json(successResponse(bookings.data, { meta: bookings.meta }));
   },
 
+  history: async (req: AuthenticatedRequest, res: Response) => {
+    const query = req.query as UserBookingHistoryQuery;
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    const history = await bookingService.listUserHistory(req.user!, page, limit);
+
+    res.status(200).json(
+      successResponse(
+        history.data.map((booking) => ({
+          id: booking.id,
+          eventId: booking.eventId,
+          eventName: booking.eventName,
+          bookingDate: formatDate(booking.bookingDate),
+          bookingTime: booking.bookingTime,
+          checkIn: formatDate(booking.checkIn),
+          checkOut: formatDate(booking.checkOut),
+          totalPrice: booking.totalPrice,
+          status: booking.status,
+          createdAt: booking.createdAt,
+        })),
+        { meta: history.meta }
+      )
+    );
+  },
+
   getById: async (req: AuthenticatedRequest, res: Response) => {
     const bookingId = Number(req.params.id);
-    const booking = await bookingService.getById(bookingId, req.user!.id, req.user!.role);
+    const booking = await bookingService.getById(bookingId, req.user!);
     res.status(200).json(successResponse(booking));
   },
 

@@ -39,14 +39,14 @@ export function UserMenu({ name, email, role }: UserMenuProps) {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="flex items-center gap-3 rounded-full px-2 py-1 hover:bg-primary-soft hover:text-primary"
+          className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 text-slate-900 hover:bg-slate-50 hover:text-slate-900"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-primary shadow-inner">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-50 text-teal-700 shadow-inner">
             {initials}
           </div>
           <div className="hidden text-left text-xs sm:block">
-            <p className="text-sm font-semibold text-primary-foreground">{displayName}</p>
-            <p className="text-[11px] uppercase tracking-wide text-primary-foreground/70">
+            <p className="text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="text-[11px] uppercase tracking-wide text-slate-600">
               {displayRole}
             </p>
           </div>

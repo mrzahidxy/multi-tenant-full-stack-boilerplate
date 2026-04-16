@@ -4,11 +4,12 @@ import { redirect } from 'next/navigation'
 
 import { RegisterForm } from '@/features/auth'
 import { auth } from '@/lib/auth'
+import { getDefaultRedirectForRole } from '@/auth/routes'
 
 export default async function RegisterPage() {
   const session = await auth()
   if (session?.user) {
-    redirect('/dashboard' as Route)
+    redirect(getDefaultRedirectForRole(session.user.role) as Route)
   }
 
   return (

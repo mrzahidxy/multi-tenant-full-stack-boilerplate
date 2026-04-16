@@ -7,6 +7,7 @@ import { SessionProvider, useSession } from 'next-auth/react'
 
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { queryClientConfig } from '@/config/query'
+import { logoutForExpiredSession } from '@/lib/session-expiry'
 import { useAuthStore } from '@/stores/auth-store'
 import { Toaster } from '@/components/ui/sonner-toaster'
 
@@ -44,6 +45,35 @@ function SessionStoreSync() {
       },
     })
   }, [session, status])
+
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      return
+    }
+
+    const expiresAtRaw = session?.accessTokenExpiresAt
+    if (!expiresAtRaw) {
+      return
+    }
+
+    const expiresAt = new Date(expiresAtRaw).getTime()
+    if (Number.isNaN(expiresAt)) {
+      return
+    }
+
+    const timeoutMs = expiresAt - Date.now()
+
+    if (timeoutMs <= 0) {
+      void logoutForExpiredSession()
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void logoutForExpiredSession()
+    }, timeoutMs)
+
+    return () => window.clearTimeout(timer)
+  }, [session?.accessTokenExpiresAt, status])
 
   return null
 }
