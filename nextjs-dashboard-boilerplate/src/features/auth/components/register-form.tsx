@@ -54,12 +54,15 @@ export function RegisterForm() {
   const isSubmitting = form.formState.isSubmitting || mutation.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 [&_.text-slate-400]:!text-white/85 [&_.text-rose-400]:!text-rose-300 [&_label]:!text-sm [&_label]:!font-medium [&_label]:!normal-case [&_label]:!tracking-normal [&_label]:!text-white/85"
+    >
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold text-slate-50">
+        <h1 className="text-2xl font-semibold text-white">
           Create an account
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-white/85">
           Sign up with email/password then plug in OAuth providers when you are
           ready.
         </p>

@@ -67,11 +67,13 @@ const BASE_COLUMNS: ColumnDef<Booking>[] = [
 
 type CreateColumnsOptions = {
   onDelete: (id: number) => void
+  onEdit: (id: number) => void
   isDeleting: boolean
 }
 
 export function createBookingColumns({
   onDelete,
+  onEdit,
   isDeleting,
 }: CreateColumnsOptions): ColumnDef<Booking>[] {
   return [
@@ -81,15 +83,14 @@ export function createBookingColumns({
       header: () => 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Link
-            href={`/business-owner/bookings/${row.original.id}`}
-            className={cn(
-              'inline-flex h-9 items-center justify-center rounded-md border border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 transition-colors',
-              'hover:border-teal-300 hover:text-teal-600',
-            )}
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn('hover:border-teal-300 hover:text-teal-600')}
+            onClick={() => onEdit(row.original.id)}
           >
             Edit
-          </Link>
+          </Button>
           <Button
             variant="outline"
             size="sm"

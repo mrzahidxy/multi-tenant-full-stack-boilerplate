@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/format'
+import { normalizeUserRole } from '@/types/user'
 
 import { analyticsKeys } from '../analytics/api/analytics-keys'
 import { getDateRange, mapTopEventsToActivity, resolveOrganizerScopeId } from '../analytics/utils'
@@ -122,6 +123,8 @@ export default function DashboardPage() {
   const { data: session, status } = useSession()
   const range = useMemo(() => getDateRange('7d'), [])
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
+  const role = normalizeUserRole(session?.user?.role)
+  const canRequestAnalytics = role === 'ADMIN' || role === 'OWNER' || role === 'STAFF'
 
   const overviewQueryParams = useMemo(
     () => ({
@@ -136,7 +139,7 @@ export default function DashboardPage() {
   const overviewQuery = useQuery({
     queryKey: analyticsKeys.overview(overviewQueryParams),
     queryFn: () => fetchDashboardOverview(overviewQueryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const overview = overviewQuery.data ?? null
@@ -148,8 +151,7 @@ export default function DashboardPage() {
     () => (overview ? mapTopEventsToActivity(overview.topEvents) : []),
     [overview],
   )
-  const hasOrganizerScope = Boolean(organizerId)
-  const isLoading = hasOrganizerScope && overviewQuery.isLoading
+  const isLoading = canRequestAnalytics && overviewQuery.isLoading
   const errorMessage = overviewQuery.error
     ? overviewQuery.error instanceof Error
       ? overviewQuery.error.message
@@ -163,16 +165,6 @@ export default function DashboardPage() {
         description="At-a-glance organizer overview from the Express analytics API"
       />
 
-      {!hasOrganizerScope && status !== 'loading' ? (
-        <Alert>
-          <AlertTitle>No organizer assigned</AlertTitle>
-          <AlertDescription>
-            The dashboard is organizer-scoped. Link this account to an organizer to load live
-            analytics.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       {errorMessage ? (
         <Alert variant="destructive">
           <AlertTitle>Unable to load dashboard data</AlertTitle>
@@ -181,7 +173,7 @@ export default function DashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {!hasOrganizerScope ? (
+        {!canRequestAnalytics ? (
           <div className="md:col-span-2 xl:col-span-4">
             <EmptyScopedState />
           </div>
@@ -204,7 +196,7 @@ export default function DashboardPage() {
         title="Recent Activity"
         subtitle="Live top events from the selected range."
       >
-        {!hasOrganizerScope ? (
+        {!canRequestAnalytics ? (
           <EmptyScopedState />
         ) : isLoading ? (
           <ActivitySkeleton />

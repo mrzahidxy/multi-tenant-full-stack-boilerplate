@@ -53,7 +53,6 @@ const PUBLIC_ORGANIZER_SELECT = {
 type OrganizerDetail = Prisma.OrganizerGetPayload<{ select: typeof ORGANIZER_SELECT }>;
 type EventDetail = Prisma.EventGetPayload<{ select: typeof EVENT_SELECT }>;
 type PublicEventDetail = Prisma.EventGetPayload<{ select: typeof PUBLIC_EVENT_SELECT }>;
-type PublicOrganizerDetail = Prisma.OrganizerGetPayload<{ select: typeof PUBLIC_ORGANIZER_SELECT }>;
 type OrganizerStatusDetail = {
   id: string;
   name: string;

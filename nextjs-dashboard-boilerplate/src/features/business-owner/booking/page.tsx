@@ -25,9 +25,14 @@ function getBookingLoadErrorMessage(error: unknown) {
   return 'Failed to load booking data'
 }
 
-export default function BookingDetailPage() {
-  const params = useParams()
-  const bookingId = params.bookingId as string
+type BookingDetailPageProps = {
+  bookingId?: string
+}
+
+export default function BookingDetailPage({ bookingId: bookingIdProp }: BookingDetailPageProps = {}) {
+  const params = useParams<{ bookingId?: string }>()
+  const bookingId = bookingIdProp ?? params?.bookingId
+  const resolvedBookingId = bookingId ?? ''
   const hasShownError = useRef(false)
 
   const {
@@ -35,9 +40,9 @@ export default function BookingDetailPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: resourceKeys.detail(bookingId),
-    queryFn: () => getBookingById(bookingId),
-    enabled: !!bookingId,
+    queryKey: resourceKeys.detail(resolvedBookingId),
+    queryFn: () => getBookingById(resolvedBookingId),
+    enabled: Boolean(bookingId),
   })
 
   useEffect(() => {
@@ -102,7 +107,7 @@ export default function BookingDetailPage() {
               }
             : undefined
         }
-        bookingId={booking?.id?.toString() ?? bookingId}
+        bookingId={booking?.id?.toString() ?? (bookingId ?? '')}
       />
     </div>
   )

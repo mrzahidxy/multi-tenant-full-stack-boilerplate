@@ -76,12 +76,6 @@ const bookingDetailInclude = {
 
 type BookingListItem = Prisma.BookingGetPayload<{ include: typeof bookingListInclude }>;
 type BookingDetail = Prisma.BookingGetPayload<{ include: typeof bookingDetailInclude }>;
-type PublicBookingEvent = {
-  id: string;
-  name: string;
-  organizerId: string;
-  isPublished: boolean;
-};
 type PublicBookingSubmission = {
   id: number;
   fullName: string | null;
