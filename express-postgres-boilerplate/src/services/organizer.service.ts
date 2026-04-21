@@ -8,6 +8,8 @@ const ORGANIZER_SELECT = {
   id: true,
   name: true,
   ownerId: true,
+  isSuspended: true,
+  suspendedAt: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -51,7 +53,6 @@ const PUBLIC_ORGANIZER_SELECT = {
 type OrganizerDetail = Prisma.OrganizerGetPayload<{ select: typeof ORGANIZER_SELECT }>;
 type EventDetail = Prisma.EventGetPayload<{ select: typeof EVENT_SELECT }>;
 type PublicEventDetail = Prisma.EventGetPayload<{ select: typeof PUBLIC_EVENT_SELECT }>;
-type PublicOrganizerDetail = Prisma.OrganizerGetPayload<{ select: typeof PUBLIC_ORGANIZER_SELECT }>;
 type OrganizerStatusDetail = {
   id: string;
   name: string;
@@ -120,6 +121,12 @@ const assertOwnerOrAdmin = (scope: OrganizerScope, action: string) => {
 const assertStaffOrOwnerOrAdmin = (scope: OrganizerScope, action: string) => {
   if (!scope.isAdmin && !scope.isOwner && !scope.isStaff) {
     throw new HttpError(403, `You do not have permission to ${action} for this organizer`);
+  }
+};
+
+const assertOrganizerActive = (scope: OrganizerScope, action: string) => {
+  if (!scope.isAdmin && scope.organizer.isSuspended) {
+    throw new HttpError(403, `Cannot ${action} while the organizer is suspended`);
   }
 };
 
@@ -208,6 +215,10 @@ export const organizerService = {
       throw new HttpError(404, 'Organizer not found');
     }
 
+    if (organizer.isSuspended) {
+      throw new HttpError(404, 'Organizer not found');
+    }
+
     const { events, isSuspended, ...rest } = organizer;
 
     return {
@@ -227,6 +238,7 @@ export const organizerService = {
   ): Promise<OrganizerDetail> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertStaffOrOwnerOrAdmin(scope, 'update the organizer profile');
+    assertOrganizerActive(scope, 'update organizer profile');
 
     return prisma.organizer.update({
       where: { id: scope.organizer.id },
@@ -294,7 +306,7 @@ export const organizerService = {
   listEvents: async (organizerId: string, actor: AuthenticatedUser): Promise<EventDetail[]> => {
     const organizer = await prisma.organizer.findUnique({
       where: { id: organizerId },
-      select: { id: true, ownerId: true },
+      select: { id: true, ownerId: true, isSuspended: true },
     });
 
     if (!organizer) {
@@ -302,6 +314,10 @@ export const organizerService = {
     }
 
     const canViewAll = actor.role === Role.ADMIN || organizer.ownerId === actor.id;
+
+    if (actor.role !== Role.ADMIN && organizer.isSuspended) {
+      throw new HttpError(403, 'This organizer is currently suspended');
+    }
 
     return prisma.event.findMany({
       where: {
@@ -320,6 +336,7 @@ export const organizerService = {
   ): Promise<EventDetail> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'create events');
+    assertOrganizerActive(scope, 'create events');
     await ensureUniqueEventName(scope.organizer.id, input.name);
 
     return prisma.event.create({
@@ -342,6 +359,7 @@ export const organizerService = {
   ): Promise<EventDetail> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'update events');
+    assertOrganizerActive(scope, 'update events');
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -395,6 +413,7 @@ export const organizerService = {
   removeEvent: async (organizerId: string, eventId: string, actor: AuthenticatedUser): Promise<void> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'delete events');
+    assertOrganizerActive(scope, 'delete events');
 
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -421,6 +440,7 @@ export const organizerService = {
   > => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'view staff assignments');
+    assertOrganizerActive(scope, 'view staff assignments');
 
     return prisma.organizerStaff.findMany({
       where: { organizerId: scope.organizer.id },
@@ -439,6 +459,55 @@ export const organizerService = {
     });
   },
 
+  listStaffCandidates: async (
+    organizerId: string,
+    search: string,
+    actor: AuthenticatedUser,
+    limit = 10
+  ): Promise<Array<{ id: number; email: string; name: string | null; role: Role }>> => {
+    const scope = await getOrganizerScope(organizerId, actor);
+    assertOwnerOrAdmin(scope, 'search staff candidates');
+    assertOrganizerActive(scope, 'search staff candidates');
+
+    const normalizedSearch = search.trim().toLowerCase();
+
+    if (normalizedSearch.length < 2) {
+      return [];
+    }
+
+    const safeLimit = Math.min(Math.max(limit, 1), 20);
+
+    return prisma.user.findMany({
+      where: {
+        role: {
+          in: [Role.USER, Role.STAFF],
+        },
+        email: {
+          contains: normalizedSearch,
+          mode: 'insensitive',
+        },
+        id: {
+          not: scope.organizer.ownerId,
+        },
+        organizerAssignments: {
+          none: {
+            organizerId: scope.organizer.id,
+          },
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+      },
+      orderBy: {
+        email: 'asc',
+      },
+      take: safeLimit,
+    });
+  },
+
   assignStaff: async (
     organizerId: string,
     userId: number,
@@ -446,6 +515,7 @@ export const organizerService = {
   ): Promise<{ organizerId: string; userId: number; assignedAt: Date }> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'assign staff');
+    assertOrganizerActive(scope, 'assign staff');
 
     if (userId === scope.organizer.ownerId) {
       throw new HttpError(400, 'The owner cannot be assigned as staff');
@@ -460,23 +530,32 @@ export const organizerService = {
       throw new HttpError(404, 'User not found');
     }
 
-    if (staffUser.role !== Role.STAFF) {
-      throw new HttpError(400, 'User must have the STAFF role to be assigned');
+    if (staffUser.role === Role.OWNER || staffUser.role === Role.ADMIN) {
+      throw new HttpError(400, 'Only USER or STAFF accounts can be assigned as staff');
     }
 
-    const assignment = await prisma.organizerStaff.upsert({
-      where: {
-        organizerId_userId: {
+    const assignment = await prisma.$transaction(async (tx) => {
+      if (staffUser.role === Role.USER) {
+        await tx.user.update({
+          where: { id: staffUser.id },
+          data: { role: Role.STAFF },
+        })
+      }
+
+      return tx.organizerStaff.upsert({
+        where: {
+          organizerId_userId: {
+            organizerId: scope.organizer.id,
+            userId: staffUser.id,
+          },
+        },
+        update: {},
+        create: {
           organizerId: scope.organizer.id,
           userId: staffUser.id,
         },
-      },
-      update: {},
-      create: {
-        organizerId: scope.organizer.id,
-        userId: staffUser.id,
-      },
-    });
+      })
+    })
 
     return assignment;
   },
@@ -484,6 +563,7 @@ export const organizerService = {
   removeStaff: async (organizerId: string, userId: number, actor: AuthenticatedUser): Promise<void> => {
     const scope = await getOrganizerScope(organizerId, actor);
     assertOwnerOrAdmin(scope, 'remove staff');
+    assertOrganizerActive(scope, 'remove staff');
 
     const existing = await prisma.organizerStaff.findUnique({
       where: {

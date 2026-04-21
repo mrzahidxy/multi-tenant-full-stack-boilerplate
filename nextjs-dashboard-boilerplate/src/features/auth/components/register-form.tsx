@@ -2,14 +2,12 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
-import { getSession, signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
 import { authRoutes } from '@/auth/routes'
-import { getDefaultRedirectForRole } from '@/auth/routes'
 import { register as registerUser } from '@/features/auth/api/auth-client'
 import { registerSchema } from '@/validation/auth-schema'
 
@@ -34,24 +32,9 @@ export function RegisterForm() {
 
   const mutation = useMutation({
     mutationFn: registerUser,
-    onSuccess: async (_, variables) => {
-      const result = await signIn('credentials', {
-        redirect: false,
-        email: variables.email,
-        password: variables.password,
-      })
-
-      if (result?.error) {
-        toast.success('Account created. Sign in to continue.')
-        router.push(authRoutes.signInPath)
-        return
-      }
-
-      const session = await getSession()
-      const destination = getDefaultRedirectForRole(session?.user?.role)
-
-      toast.success('Account created.')
-      router.replace(destination)
+    onSuccess: () => {
+      toast.success('Account created. Sign in to continue.')
+      router.push(authRoutes.signInPath)
     },
     onError: (error) => {
       toast.error(
@@ -71,12 +54,15 @@ export function RegisterForm() {
   const isSubmitting = form.formState.isSubmitting || mutation.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 [&_.text-slate-400]:!text-white/85 [&_.text-rose-400]:!text-rose-300 [&_label]:!text-sm [&_label]:!font-medium [&_label]:!normal-case [&_label]:!tracking-normal [&_label]:!text-white/85"
+    >
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold text-slate-50">
+        <h1 className="text-2xl font-semibold text-white">
           Create an account
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-white/85">
           Sign up with email/password then plug in OAuth providers when you are
           ready.
         </p>

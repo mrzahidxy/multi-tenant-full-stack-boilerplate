@@ -290,37 +290,33 @@ export const adminService = {
     `;
 
     // Demo-only license fields until the project has real billing/license persistence.
-    return {
-      data: rows.map((row) => {
-        const seatsUsed = 1 + (row.staffCount ?? 0);
-        const plan = (row.eventCount ?? 0) >= 5 ? 'growth' : 'starter';
-        const seatLimit = plan === 'growth' ? 25 : 5;
+    return rows.map((row) => {
+      const seatsUsed = 1 + (row.staffCount ?? 0);
+      const plan = (row.eventCount ?? 0) >= 5 ? 'growth' : 'starter';
+      const seatLimit = plan === 'growth' ? 25 : 5;
 
-        return {
-          organizerId: row.organizerId,
-          organizerName: row.organizerName,
-          owner: {
-            id: row.ownerId,
-            email: row.ownerEmail,
-            name: row.ownerName,
-          },
-          plan,
-          licenseStatus: row.isSuspended ? 'suspended' : 'active',
-          seatsUsed,
-          seatsLimit: seatLimit,
-          billingCycle: 'monthly',
-          renewalDate: addDays(row.createdAt, 30).toISOString(),
-        };
-      }),
-    };
+      return {
+        organizerId: row.organizerId,
+        organizerName: row.organizerName,
+        owner: {
+          id: row.ownerId,
+          email: row.ownerEmail,
+          name: row.ownerName,
+        },
+        plan,
+        licenseStatus: row.isSuspended ? 'suspended' : 'active',
+        seatsUsed,
+        seatsLimit: seatLimit,
+        billingCycle: 'monthly',
+        renewalDate: addDays(row.createdAt, 30).toISOString(),
+      };
+    });
   },
 
   listAuditLogs: async () => {
     const entries = await buildSynthesizedAuditLogEntries();
 
-    return {
-      data: entries.map(mapAuditLogToOverviewActivity),
-    };
+    return entries.map(mapAuditLogToOverviewActivity);
   },
 
   getOrganizerActivity: async (organizerId: string) => {

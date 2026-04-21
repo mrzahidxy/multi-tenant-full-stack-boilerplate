@@ -10,6 +10,7 @@ import {
   createPublicBookingSchema,
   updateBookingSchema,
   listBookingsQuerySchema,
+  userBookingHistoryQuerySchema,
 } from '../schemas/booking.schema';
 
 const router = Router();
@@ -22,6 +23,13 @@ router.post(
 );
 
 router.get('/', requireAuth(), validateRequest(listBookingsQuerySchema, 'query'), bookingController.list);
+
+router.get(
+  '/history',
+  requireAuth([Role.USER]),
+  validateRequest(userBookingHistoryQuerySchema, 'query'),
+  bookingController.history
+);
 
 router.get('/:id', requireAuth(),  validateRequest(bookingIdParamSchema, 'params'), bookingController.getById);
 

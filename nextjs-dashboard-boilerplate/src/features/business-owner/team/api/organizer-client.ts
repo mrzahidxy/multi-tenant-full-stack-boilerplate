@@ -7,6 +7,7 @@ import {
   normalizeEvent,
   normalizeOrganizer,
   normalizeUserLike,
+  toObject,
 } from '@/lib/api/normalizers'
 
 export type OrganizerStaffMember = {
@@ -33,20 +34,47 @@ export type UpdateOrganizerRequest = {
 
 export type CreateOrganizerEventRequest = {
   description?: string
-  isPublished?: boolean
   name: string
+  isPublished?: boolean
   price: number
 }
 
 export type UpdateOrganizerEventRequest = {
   description?: string | null
-  isPublished?: boolean
   name?: string
+  isPublished?: boolean
   price?: number
 }
 
 export type AddOrganizerStaffRequest = {
   userId: number
+}
+
+export type OrganizerStaffCandidate = {
+  email: string
+  id: string
+  name?: string | null
+  role: string
+}
+
+function normalizeOrganizerStaffMember(entry: unknown): OrganizerStaffMember {
+  const record = toObject(entry)
+  const normalized = normalizeUserLike(record?.user ?? entry)
+  const assignedAt =
+    typeof record?.assignedAt === 'string' ? record.assignedAt : ''
+
+  return {
+    business: normalized.business,
+    businessId: normalized.businessId,
+    createdAt: normalized.createdAt || assignedAt,
+    email: normalized.email,
+    id: normalized.id,
+    name: normalized.name,
+    permissions: normalized.permissions,
+    role: normalized.role,
+    status: normalized.status,
+    updatedAt: normalized.updatedAt || assignedAt,
+  } satisfies OrganizerStaffMember
 }
 
 export async function createOrganizer(input: CreateOrganizerRequest) {
@@ -161,22 +189,7 @@ export async function listOrganizerStaff(organizerId: string) {
     },
   )
 
-  return extractList(response, ['staff', 'users'], (entry) => {
-    const normalized = normalizeUserLike(entry)
-
-    return {
-      business: normalized.business,
-      businessId: normalized.businessId,
-      createdAt: normalized.createdAt,
-      email: normalized.email,
-      id: normalized.id,
-      name: normalized.name,
-      permissions: normalized.permissions,
-      role: normalized.role,
-      status: normalized.status,
-      updatedAt: normalized.updatedAt,
-    } satisfies OrganizerStaffMember
-  })
+  return extractList(response, ['staff', 'users'], normalizeOrganizerStaffMember)
 }
 
 export async function addOrganizerStaff(
@@ -191,21 +204,35 @@ export async function addOrganizerStaff(
     },
   )
 
-  return extractList(response, ['staff', 'users'], (entry) => {
+  return extractList(response, ['staff', 'users'], normalizeOrganizerStaffMember)
+}
+
+export async function listOrganizerStaffCandidates(
+  organizerId: string,
+  search: string,
+  limit = 10,
+) {
+  const response = await apiClient.get<unknown>(
+    `/api/organizers/${organizerId}/staff-candidates`,
+    {
+      auth: true,
+      cache: 'no-store',
+      query: {
+        limit,
+        search,
+      },
+    },
+  )
+
+  return extractList(response, ['users', 'staff'], (entry) => {
     const normalized = normalizeUserLike(entry)
 
     return {
-      business: normalized.business,
-      businessId: normalized.businessId,
-      createdAt: normalized.createdAt,
       email: normalized.email,
       id: normalized.id,
       name: normalized.name,
-      permissions: normalized.permissions,
       role: normalized.role,
-      status: normalized.status,
-      updatedAt: normalized.updatedAt,
-    } satisfies OrganizerStaffMember
+    } satisfies OrganizerStaffCandidate
   })
 }
 

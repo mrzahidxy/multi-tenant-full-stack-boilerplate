@@ -15,6 +15,7 @@ import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Modal } from '@/components/ui/modal'
 import { formatDate } from '@/lib/format'
+import { slugify } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,21 +29,18 @@ import {
   listAdminLicenses,
   updateAdminOrganizerStatus,
 } from '@/features/admin/api/admin-client'
+import { listUsers } from '@/features/admin/users/api/user-client'
 import { createOrganizer } from '@/features/business-owner/team/api/organizer-client'
 import { TenantToolbar } from './components/tenant-toolbar'
 import { useTenantDirectory } from './hooks/use-tenant-directory'
 import type { Tenant } from './tenant-detail-drawer'
-
-function slugify(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-}
 
 export function TenantsPage() {
   const queryClient = useQueryClient()
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createForm, setCreateForm] = useState({
     name: '',
-    ownerId: '',
+    ownerEmail: '',
   })
   const {
     data: licenses = [],
@@ -86,11 +84,37 @@ export function TenantsPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: ({ name, ownerId }: { name: string; ownerId: number }) =>
-      createOrganizer({ name, ownerId }),
+    mutationFn: async ({ name, ownerEmail }: { name: string; ownerEmail: string }) => {
+      const users = await listUsers({
+        limit: 20,
+        page: 1,
+        role: 'OWNER',
+        search: ownerEmail,
+      })
+
+      const ownerUser = users.users.find(
+        (user) => user.email.toLowerCase() === ownerEmail.toLowerCase(),
+      )
+
+      if (!ownerUser) {
+        throw new Error('No OWNER user found with that email')
+      }
+
+      if (ownerUser.role !== 'OWNER') {
+        throw new Error('Selected email does not belong to an OWNER user')
+      }
+
+      const ownerId = Number(ownerUser.id)
+
+      if (!Number.isInteger(ownerId) || ownerId <= 0) {
+        throw new Error('Resolved owner user id is invalid')
+      }
+
+      return createOrganizer({ name, ownerId })
+    },
     onSuccess: () => {
       toast.success('Organizer created successfully')
-      setCreateForm({ name: '', ownerId: '' })
+      setCreateForm({ name: '', ownerEmail: '' })
       setIsCreateOpen(false)
       queryClient.invalidateQueries({ queryKey: ['admin-licenses'] })
     },
@@ -194,11 +218,6 @@ export function TenantsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(row.original.id)}
-              >
-                Copy organizer ID
-              </DropdownMenuItem>
               {row.original.status === 'Active' ? (
                 <DropdownMenuItem
                   disabled={isMutating}
@@ -339,17 +358,17 @@ export function TenantsPage() {
             />
           </FormField>
           <FormField
-            label="Owner user ID"
-            htmlFor="create-organizer-owner-id"
-            description="Required by the backend when an admin creates an organizer."
+            label="Owner email"
+            htmlFor="create-organizer-owner-email"
+            description="Searches OWNER users by email and assigns matched owner."
           >
             <Input
-              id="create-organizer-owner-id"
-              type="number"
-              min="1"
-              value={createForm.ownerId}
+              id="create-organizer-owner-email"
+              type="email"
+              placeholder="owner@example.com"
+              value={createForm.ownerEmail}
               onChange={(event) =>
-                setCreateForm((current) => ({ ...current, ownerId: event.target.value }))
+                setCreateForm((current) => ({ ...current, ownerEmail: event.target.value }))
               }
             />
           </FormField>
@@ -360,19 +379,25 @@ export function TenantsPage() {
             <Button
               onClick={() => {
                 const trimmedName = createForm.name.trim()
-                const ownerId = Number(createForm.ownerId)
+                const ownerEmail = createForm.ownerEmail.trim()
 
                 if (!trimmedName) {
                   toast.error('Organizer name is required')
                   return
                 }
 
-                if (!Number.isInteger(ownerId) || ownerId <= 0) {
-                  toast.error('Owner user ID must be a positive integer')
+                if (!ownerEmail) {
+                  toast.error('Owner email is required')
                   return
                 }
 
-                createMutation.mutate({ name: trimmedName, ownerId })
+                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+                if (!emailPattern.test(ownerEmail)) {
+                  toast.error('Enter a valid owner email address')
+                  return
+                }
+
+                createMutation.mutate({ name: trimmedName, ownerEmail })
               }}
               disabled={createMutation.isPending}
             >

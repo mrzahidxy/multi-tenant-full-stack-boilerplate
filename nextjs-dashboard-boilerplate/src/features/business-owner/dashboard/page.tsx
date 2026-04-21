@@ -15,6 +15,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/format'
+import { normalizeUserRole } from '@/types/user'
 
 import { analyticsKeys } from '../analytics/api/analytics-keys'
 import { getDateRange, mapTopEventsToActivity, resolveOrganizerScopeId } from '../analytics/utils'
@@ -41,29 +42,46 @@ type DashboardStatCard = Omit<StatCardProps, 'className'>
 function buildDashboardStats(
   overview: DashboardOverviewResponse,
 ): DashboardStatCard[] {
+  const bookingSummary = overview.bookingSummary ?? {
+    totalBookings: 0,
+    averageOrderValue: 0,
+  }
+  const paymentSummary = overview.paymentSummary ?? {
+    totalRevenue: 0,
+    totalPayments: 0,
+  }
+  const eventSummary = overview.eventSummary ?? {
+    totalEvents: 0,
+    publishedEvents: 0,
+  }
+  const userSummary = overview.userSummary ?? {
+    totalScopedUsers: 0,
+    registrationsInRange: 0,
+  }
+
   return [
     {
       label: 'Revenue',
-      value: formatCurrency(overview.paymentSummary.totalRevenue),
-      helper: `AOV ${formatCurrency(overview.bookingSummary.averageOrderValue)}`,
+      value: formatCurrency(paymentSummary.totalRevenue),
+      helper: `AOV ${formatCurrency(bookingSummary.averageOrderValue)}`,
       icon: <Wallet className="h-5 w-5" />,
     },
     {
       label: 'Bookings',
-      value: overview.bookingSummary.totalBookings.toLocaleString(),
-      helper: `Payments ${overview.paymentSummary.totalPayments.toLocaleString()}`,
+      value: bookingSummary.totalBookings.toLocaleString(),
+      helper: `Payments ${paymentSummary.totalPayments.toLocaleString()}`,
       icon: <Receipt className="h-5 w-5" />,
     },
     {
       label: 'Events',
-      value: overview.eventSummary.totalEvents.toLocaleString(),
-      helper: `Published ${overview.eventSummary.publishedEvents.toLocaleString()}`,
+      value: eventSummary.totalEvents.toLocaleString(),
+      helper: `Published ${eventSummary.publishedEvents.toLocaleString()}`,
       icon: <Activity className="h-5 w-5" />,
     },
     {
       label: 'Users',
-      value: overview.userSummary.totalScopedUsers.toLocaleString(),
-      helper: `Registrations ${overview.userSummary.registrationsInRange.toLocaleString()}`,
+      value: userSummary.totalScopedUsers.toLocaleString(),
+      helper: `Registrations ${userSummary.registrationsInRange.toLocaleString()}`,
       icon: <UsersRound className="h-5 w-5" />,
     },
   ]
@@ -105,6 +123,8 @@ export default function DashboardPage() {
   const { data: session, status } = useSession()
   const range = useMemo(() => getDateRange('7d'), [])
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
+  const role = normalizeUserRole(session?.user?.role)
+  const canRequestAnalytics = role === 'ADMIN' || role === 'OWNER' || role === 'STAFF'
 
   const overviewQueryParams = useMemo(
     () => ({
@@ -119,7 +139,7 @@ export default function DashboardPage() {
   const overviewQuery = useQuery({
     queryKey: analyticsKeys.overview(overviewQueryParams),
     queryFn: () => fetchDashboardOverview(overviewQueryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const overview = overviewQuery.data ?? null
@@ -131,8 +151,7 @@ export default function DashboardPage() {
     () => (overview ? mapTopEventsToActivity(overview.topEvents) : []),
     [overview],
   )
-  const hasOrganizerScope = Boolean(organizerId)
-  const isLoading = hasOrganizerScope && overviewQuery.isLoading
+  const isLoading = canRequestAnalytics && overviewQuery.isLoading
   const errorMessage = overviewQuery.error
     ? overviewQuery.error instanceof Error
       ? overviewQuery.error.message
@@ -143,18 +162,8 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <DashboardHeader
         title="Dashboard"
-        description="Live organizer overview from the Express analytics API"
+        description="At-a-glance organizer overview from the Express analytics API"
       />
-
-      {!hasOrganizerScope && status !== 'loading' ? (
-        <Alert>
-          <AlertTitle>No organizer assigned</AlertTitle>
-          <AlertDescription>
-            The dashboard is organizer-scoped. Link this account to an organizer to load live
-            analytics.
-          </AlertDescription>
-        </Alert>
-      ) : null}
 
       {errorMessage ? (
         <Alert variant="destructive">
@@ -164,7 +173,7 @@ export default function DashboardPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {!hasOrganizerScope ? (
+        {!canRequestAnalytics ? (
           <div className="md:col-span-2 xl:col-span-4">
             <EmptyScopedState />
           </div>
@@ -187,7 +196,7 @@ export default function DashboardPage() {
         title="Recent Activity"
         subtitle="Live top events from the selected range."
       >
-        {!hasOrganizerScope ? (
+        {!canRequestAnalytics ? (
           <EmptyScopedState />
         ) : isLoading ? (
           <ActivitySkeleton />

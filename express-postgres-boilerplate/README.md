@@ -257,6 +257,7 @@ curl -X POST http://localhost:8080/api/organizers \
 
 | Method | Path                   | Description                                      | Auth |
 | ------ | ---------------------- | ------------------------------------------------ | ---- |
+| GET    | `/api/bookings/history`| Simple booking history for the current USER      | User |
 | GET    | `/api/bookings`        | List bookings (admin sees all, users see theirs) | Yes  |
 | POST   | `/api/bookings`        | Create a booking (published events for USER)     | Yes  |
 | GET    | `/api/bookings/:id`    | Get booking details by ID                        | Yes  |

@@ -3,19 +3,36 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
+import { HttpError } from '@/lib/errors'
 import { formatDate } from '@/lib/format'
-import { createCheckoutSession } from '@/lib/api/payments-client'
 import { getBookingById } from './api/booking-client'
 import { resourceKeys } from './api/booking-keys'
 import { BookingForm } from './components/booking-form'
 
-export default function BookingDetailPage() {
-  const params = useParams()
-  const bookingId = params.bookingId as string
+function getBookingLoadErrorMessage(error: unknown) {
+  if (error instanceof HttpError) {
+    if (error.status === 401) {
+      return 'Your session has expired. Please sign in again to view booking details.'
+    }
+
+    if (error.status === 403) {
+      return 'You do not have permission to view this booking.'
+    }
+  }
+
+  return 'Failed to load booking data'
+}
+
+type BookingDetailPageProps = {
+  bookingId?: string
+}
+
+export default function BookingDetailPage({ bookingId: bookingIdProp }: BookingDetailPageProps = {}) {
+  const params = useParams<{ bookingId?: string }>()
+  const bookingId = bookingIdProp ?? params?.bookingId
+  const resolvedBookingId = bookingId ?? ''
   const hasShownError = useRef(false)
 
   const {
@@ -23,33 +40,9 @@ export default function BookingDetailPage() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: resourceKeys.detail(bookingId),
-    queryFn: () => getBookingById(bookingId),
-    enabled: !!bookingId,
-  })
-
-  const checkoutMutation = useMutation({
-    mutationFn: (id: number) =>
-      createCheckoutSession({
-        bookingId: id,
-        cancelUrl: `${window.location.origin}/payments/cancel`,
-        successUrl: `${window.location.origin}/payments/success`,
-      }),
-    onSuccess: (response) => {
-      if (response.url) {
-        window.location.assign(response.url)
-        return
-      }
-
-      toast.success('Checkout session created')
-    },
-    onError: (mutationError) => {
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : 'Unable to create checkout session',
-      )
-    },
+    queryKey: resourceKeys.detail(resolvedBookingId),
+    queryFn: () => getBookingById(resolvedBookingId),
+    enabled: Boolean(bookingId),
   })
 
   useEffect(() => {
@@ -58,7 +51,7 @@ export default function BookingDetailPage() {
       (error || !booking) &&
       !hasShownError.current
     ) {
-      toast.error('Failed to load booking data')
+      toast.error(getBookingLoadErrorMessage(error))
       hasShownError.current = true
     }
   }, [isLoading, error, booking])
@@ -102,14 +95,6 @@ export default function BookingDetailPage() {
               )}
             </p>
           </div>
-          {booking ? (
-            <Button
-              onClick={() => checkoutMutation.mutate(booking.id)}
-              disabled={checkoutMutation.isPending}
-            >
-              {checkoutMutation.isPending ? 'Creating checkout...' : 'Start checkout'}
-            </Button>
-          ) : null}
         </div>
       </div>
 
@@ -118,12 +103,11 @@ export default function BookingDetailPage() {
         defaultValues={
           booking
             ? {
-                checkIn: booking.checkIn,
-                checkOut: booking.checkOut,
+                status: booking.status,
               }
             : undefined
         }
-        bookingId={booking?.id?.toString() ?? bookingId}
+        bookingId={booking?.id?.toString() ?? (bookingId ?? '')}
       />
     </div>
   )

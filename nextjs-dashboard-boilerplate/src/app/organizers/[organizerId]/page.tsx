@@ -92,7 +92,7 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-50">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.12),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(15,23,42,0.08),_transparent_30%)]" />
-      <div className="relative mx-auto max-w-6xl px-5 py-8 sm:px-8 sm:py-12">
+      <div className="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
         <div className="mb-6 flex items-center justify-end gap-4">
           <span className="text-xs uppercase tracking-[0.3em] text-slate-400">
             Public organizer landing
@@ -107,7 +107,9 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
                 <Badge variant={statusVariants[organizer.status]}>
                   {organizer.status === 'SUSPENDED' ? 'Suspended' : 'Open'}
                 </Badge>
-                <Badge variant="outline">Organizer ID {organizer.id}</Badge>
+                <Badge variant="outline" className="max-w-full font-mono text-[11px] sm:text-xs">
+                  Organizer ID <span className="truncate">{organizer.id}</span>
+                </Badge>
               </div>
 
               <div className="space-y-3">
@@ -156,31 +158,7 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
           </div>
         </section>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <Card className="border-slate-200 bg-white/90">
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Organizer</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{organizer.name}</p>
-              <p className="mt-1 text-sm text-slate-500">Public organizer profile</p>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200 bg-white/90">
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Events</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-900">{publishedEvents.length}</p>
-              <p className="mt-1 text-sm text-slate-500">Published and visible listings</p>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200 bg-white/90">
-            <CardContent className="p-5">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Organizer ID</p>
-              <p className="mt-2 truncate font-mono text-sm text-slate-900">{organizer.id}</p>
-              <p className="mt-1 text-sm text-slate-500">Shared publicly in the URL</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-12 grid gap-8 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="mt-12 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section id="events" className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div className="space-y-2">
@@ -205,7 +183,7 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-5 sm:grid-cols-2">
                 {publishedEvents.map((event) => (
                   <Card
                     key={event.id}
@@ -222,13 +200,12 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
                         </span>
                       </div>
                       <p className="text-sm leading-6 text-slate-600">
-                        {event.description || 'More details will be added soon.'}
+                        {event.description || '—'}
                       </p>
                     </CardHeader>
                     <CardContent className="space-y-4 border-t border-slate-100 px-6 py-4">
-                      <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
-                        <span>Created {formatDate(event.createdAt)}</span>
-                        <span className="font-mono text-slate-400">{event.id.slice(0, 8)}</span>
+                      <div className="text-xs text-slate-500">
+                        Created {formatDate(event.createdAt)}
                       </div>
                       <Link
                         href={`/organizers/${organizer.id}?eventId=${event.id}#booking-form`}
@@ -244,24 +221,13 @@ export default async function OrganizerPage({ params, searchParams }: OrganizerP
             )}
           </section>
 
-          <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
+          <aside className="space-y-6 lg:self-start xl:sticky xl:top-8">
             <PublicOrganizerBookingForm
               organizerId={organizerId}
               organizerName={organizer.name}
               events={publishedEvents}
               initialEventId={selectedEventId}
             />
-
-            <Card className="border-slate-200 bg-white/90">
-              <CardContent className="space-y-3 p-5">
-                <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Booking notes</p>
-                <p className="text-sm leading-6 text-slate-600">
-                  Booking submissions are sent directly to the organizer for review. Logged-in
-                  users reuse their account name and email; guests provide contact details in the
-                  form.
-                </p>
-              </CardContent>
-            </Card>
           </aside>
         </div>
 

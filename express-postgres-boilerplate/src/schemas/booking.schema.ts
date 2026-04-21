@@ -60,6 +60,7 @@ export const updateBookingSchema = z
   .object({
     checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-in must be in YYYY-MM-DD format').optional(),
     checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Check-out must be in YYYY-MM-DD format').optional(),
+    status: z.nativeEnum(BookingStatus).optional(),
   })
   .refine(
     (data) => {
@@ -99,6 +100,11 @@ export const listBookingsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().optional(),
 });
 
+export const userBookingHistoryQuerySchema = z.object({
+  page: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().positive().optional(),
+});
+
 export const bookingIdParamSchema = z.object({
   id: z
     .string()
@@ -110,3 +116,4 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type CreatePublicBookingInput = z.infer<typeof createPublicBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
 export type ListBookingsQuery = z.infer<typeof listBookingsQuerySchema>;
+export type UserBookingHistoryQuery = z.infer<typeof userBookingHistoryQuerySchema>;

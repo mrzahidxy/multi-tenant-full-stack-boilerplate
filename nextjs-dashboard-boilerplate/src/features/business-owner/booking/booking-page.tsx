@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 
+import { DashboardHeader } from '../dashboard/components/dashboard-header'
 import { BookingTable } from './components/booking-table'
 
 export const metadata: Metadata = {
@@ -9,12 +10,10 @@ export const metadata: Metadata = {
 export default function BookingPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Bookings</h1>
-        <p className="text-muted-foreground">
-          Manage attendee bookings, stay dates, and booking totals
-        </p>
-      </div>
+      <DashboardHeader
+        title="Bookings"
+        description="Manage attendee bookings, stay dates, and booking totals"
+      />
 
       <BookingTable />
     </div>

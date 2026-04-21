@@ -9,7 +9,6 @@ import type { z } from 'zod'
 
 import { getDefaultRedirectForRole } from '@/auth/routes'
 import { Button } from '@/components/ui/button'
-import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
@@ -26,15 +25,10 @@ export function LoginForm({ className }: LoginFormProps) {
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'owner@example.com',
-      password: 'changeMeOwner1!',
+      email: '',
+      password: '',
     },
   })
-
-  const applyCredentials = (email: string, password: string) => {
-    form.setValue('email', email)
-    form.setValue('password', password)
-  }
 
   const handleSubmit = form.handleSubmit(async (values) => {
     const result = await signIn('credentials', {
@@ -60,49 +54,41 @@ export function LoginForm({ className }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-semibold text-slate-50">Sign in to continue</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-2xl font-semibold text-white">Sign in to continue</h1>
+        <p className="text-sm text-white/85">
           Use your backend account credentials. This form now authenticates through the API and creates a NextAuth session.
         </p>
       </div>
 
-      <FormField label="Email" error={form.formState.errors.email?.message} htmlFor="login-email">
+      <div className="space-y-2">
+        <label
+          htmlFor="login-email"
+          className="text-xs font-semibold uppercase tracking-wide text-white/80"
+        >
+          Email
+        </label>
         <Input id="login-email" autoComplete="email" {...form.register('email')} />
-      </FormField>
+        {form.formState.errors.email?.message ? (
+          <p className="text-xs text-rose-300">{form.formState.errors.email.message}</p>
+        ) : null}
+      </div>
 
-      <FormField
-        label="Password"
-        error={form.formState.errors.password?.message}
-        htmlFor="login-password"
-      >
+      <div className="space-y-2">
+        <label
+          htmlFor="login-password"
+          className="text-xs font-semibold uppercase tracking-wide text-white/80"
+        >
+          Password
+        </label>
         <Input
           id="login-password"
           type="password"
           autoComplete="current-password"
           {...form.register('password')}
         />
-      </FormField>
-
-      <div className="flex items-center justify-between text-xs text-slate-400">
-        <span>Quick fill:</span>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => applyCredentials('admin@example.com', 'changeMeAdmin1!')}
-          >
-            Admin
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => applyCredentials('owner@example.com', 'changeMeOwner1!')}
-          >
-            Organizer
-          </Button>
-        </div>
+        {form.formState.errors.password?.message ? (
+          <p className="text-xs text-rose-300">{form.formState.errors.password.message}</p>
+        ) : null}
       </div>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>

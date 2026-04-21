@@ -36,6 +36,8 @@ type SeedBooking = {
   userEmail: string;
   organizerName: string;
   eventName: string;
+  createdAt?: string;
+  updatedAt?: string;
   checkIn: string;
   checkOut: string;
   totalPrice: number;
@@ -48,8 +50,19 @@ type SeedPayment = {
   amount: number;
   currency: string;
   status: PaymentStatus;
+  createdAt?: string;
+  updatedAt?: string;
   stripeSessionId: string;
   stripePaymentIntentId?: string;
+};
+
+const seedReferenceDate = new Date('2026-04-15T12:00:00.000Z');
+
+const isoDaysAgo = (daysAgo: number, hour = 12) => {
+  const date = new Date(seedReferenceDate);
+  date.setUTCDate(date.getUTCDate() - daysAgo);
+  date.setUTCHours(hour, 0, 0, 0);
+  return date.toISOString();
 };
 
 type SeedGuestBooking = {
@@ -71,6 +84,12 @@ const usersToSeed: SeedUser[] = [
     password: 'changeMeAdmin1!',
   },
   {
+    email: 'admin.audit@example.com',
+    name: 'Admin Auditor',
+    role: Role.ADMIN,
+    password: 'changeMeAdmin2!',
+  },
+  {
     email: primaryOwnerEmail,
     name: 'Organizer Owner',
     role: Role.OWNER,
@@ -87,6 +106,18 @@ const usersToSeed: SeedUser[] = [
     name: 'Suspended Organizer Owner',
     role: Role.OWNER,
     password: 'changeMeOwner3!',
+  },
+  {
+    email: 'owner4@example.com',
+    name: 'Independent Organizer Owner',
+    role: Role.OWNER,
+    password: 'changeMeOwner4!',
+  },
+  {
+    email: 'owner-no-organizer@example.com',
+    name: 'Owner Without Organizer',
+    role: Role.OWNER,
+    password: 'changeMeOwner5!',
   },
   {
     email: 'user1@example.com',
@@ -119,6 +150,18 @@ const usersToSeed: SeedUser[] = [
     password: 'changeMeUser5!',
   },
   {
+    email: 'user6@example.com',
+    name: 'Finley Carter',
+    role: Role.USER,
+    password: 'changeMeUser6!',
+  },
+  {
+    email: 'user7@example.com',
+    name: 'Harper Quinn',
+    role: Role.USER,
+    password: 'changeMeUser7!',
+  },
+  {
     email: 'staff1@example.com',
     name: 'Jordan Reyes',
     role: Role.STAFF,
@@ -129,6 +172,12 @@ const usersToSeed: SeedUser[] = [
     name: 'Taylor Brooks',
     role: Role.STAFF,
     password: 'changeMeStaff2!',
+  },
+  {
+    email: 'staff3@example.com',
+    name: 'Morgan Tate',
+    role: Role.STAFF,
+    password: 'changeMeStaff3!',
   },
 ];
 
@@ -212,6 +261,24 @@ const organizerSeeds: SeedOrganizer[] = [
       },
     ],
   },
+  {
+    name: 'Quiet Harbor Labs',
+    ownerEmail: 'owner4@example.com',
+    events: [
+      {
+        name: 'Beta Product Showcase',
+        description: 'Public showcase event used for isolated owner test flows.',
+        price: 89,
+        isPublished: true,
+      },
+      {
+        name: 'Owner Strategy Sprint',
+        description: 'Unpublished planning event for permission and owner-only tests.',
+        price: 129,
+        isPublished: false,
+      },
+    ],
+  },
 ];
 
 const bookingSeeds: SeedBooking[] = [
@@ -220,6 +287,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user1@example.com',
     organizerName: 'Northwind Live',
     eventName: 'Founders Summit 2026',
+    createdAt: isoDaysAgo(1, 10),
+    updatedAt: isoDaysAgo(1, 14),
     checkIn: '2026-04-12T09:00:00.000Z',
     checkOut: '2026-04-13T18:00:00.000Z',
     totalPrice: 199,
@@ -231,6 +300,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user1@example.com',
     organizerName: 'Northwind Live',
     eventName: 'Growth Marketing Intensive',
+    createdAt: isoDaysAgo(0, 8),
+    updatedAt: isoDaysAgo(0, 11),
     checkIn: '2026-05-03T10:00:00.000Z',
     checkOut: '2026-05-03T17:00:00.000Z',
     totalPrice: 149,
@@ -242,6 +313,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user2@example.com',
     organizerName: 'Northwind Live',
     eventName: 'Founders Summit 2026',
+    createdAt: isoDaysAgo(6, 9),
+    updatedAt: isoDaysAgo(5, 16),
     checkIn: '2026-03-01T09:00:00.000Z',
     checkOut: '2026-03-02T18:00:00.000Z',
     totalPrice: 249,
@@ -253,6 +326,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user2@example.com',
     organizerName: 'Blue Harbor Events',
     eventName: 'Product Launch Expo',
+    createdAt: isoDaysAgo(12, 13),
+    updatedAt: isoDaysAgo(11, 10),
     checkIn: '2026-06-15T08:30:00.000Z',
     checkOut: '2026-06-15T18:00:00.000Z',
     totalPrice: 179,
@@ -264,6 +339,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user3@example.com',
     organizerName: 'Blue Harbor Events',
     eventName: 'Product Launch Expo',
+    createdAt: isoDaysAgo(2, 12),
+    updatedAt: isoDaysAgo(1, 9),
     checkIn: '2026-07-21T08:30:00.000Z',
     checkOut: '2026-07-21T18:00:00.000Z',
     totalPrice: 299,
@@ -275,6 +352,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user3@example.com',
     organizerName: 'Blue Harbor Events',
     eventName: 'Community Meetup Night',
+    createdAt: isoDaysAgo(4, 10),
+    updatedAt: isoDaysAgo(3, 15),
     checkIn: '2026-08-10T16:00:00.000Z',
     checkOut: '2026-08-10T21:00:00.000Z',
     totalPrice: 49,
@@ -286,6 +365,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user4@example.com',
     organizerName: 'Northwind Live',
     eventName: 'Growth Marketing Intensive',
+    createdAt: isoDaysAgo(9, 11),
+    updatedAt: isoDaysAgo(8, 17),
     checkIn: '2026-02-14T10:00:00.000Z',
     checkOut: '2026-02-14T17:00:00.000Z',
     totalPrice: 149,
@@ -297,6 +378,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user4@example.com',
     organizerName: 'Blue Harbor Events',
     eventName: 'Community Meetup Night',
+    createdAt: isoDaysAgo(15, 14),
+    updatedAt: isoDaysAgo(14, 10),
     checkIn: '2026-09-18T16:00:00.000Z',
     checkOut: '2026-09-18T21:00:00.000Z',
     totalPrice: 49,
@@ -308,6 +391,8 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user5@example.com',
     organizerName: 'Northwind Live',
     eventName: 'Founders Summit 2026',
+    createdAt: isoDaysAgo(3, 9),
+    updatedAt: isoDaysAgo(2, 15),
     checkIn: '2026-10-07T09:00:00.000Z',
     checkOut: '2026-10-08T18:00:00.000Z',
     totalPrice: 199,
@@ -319,11 +404,65 @@ const bookingSeeds: SeedBooking[] = [
     userEmail: 'user5@example.com',
     organizerName: 'Blue Harbor Events',
     eventName: 'Product Launch Expo',
+    createdAt: isoDaysAgo(24, 12),
+    updatedAt: isoDaysAgo(22, 10),
     checkIn: '2026-01-21T08:30:00.000Z',
     checkOut: '2026-01-21T18:00:00.000Z',
     totalPrice: 179,
     status: BookingStatus.COMPLETED,
     notes: 'Completed product launch booking used for revenue reporting',
+  },
+  {
+    key: 'booking-user1-maple-brunch-cancelled',
+    userEmail: 'user1@example.com',
+    organizerName: 'Maple Street Gatherings',
+    eventName: 'Neighborhood Brunch Social',
+    createdAt: isoDaysAgo(20, 9),
+    updatedAt: isoDaysAgo(19, 11),
+    checkIn: '2026-11-22T10:00:00.000Z',
+    checkOut: '2026-11-22T14:00:00.000Z',
+    totalPrice: 35,
+    status: BookingStatus.CANCELLED,
+    notes: 'Cancelled community booking for owner-side cancellation review',
+  },
+  {
+    key: 'booking-user2-retreat-confirmed',
+    userEmail: 'user2@example.com',
+    organizerName: 'Northwind Live',
+    eventName: 'Private Leadership Retreat',
+    createdAt: isoDaysAgo(7, 13),
+    updatedAt: isoDaysAgo(6, 10),
+    checkIn: '2026-12-11T09:00:00.000Z',
+    checkOut: '2026-12-12T18:00:00.000Z',
+    totalPrice: 299,
+    status: BookingStatus.CONFIRMED,
+    notes: 'Booking linked to an unpublished event for admin/owner visibility tests',
+  },
+  {
+    key: 'booking-user3-maple-market-completed',
+    userEmail: 'user3@example.com',
+    organizerName: 'Maple Street Gatherings',
+    eventName: 'Autumn Makers Market',
+    createdAt: isoDaysAgo(17, 10),
+    updatedAt: isoDaysAgo(16, 16),
+    checkIn: '2026-10-03T09:30:00.000Z',
+    checkOut: '2026-10-03T17:30:00.000Z',
+    totalPrice: 25,
+    status: BookingStatus.COMPLETED,
+    notes: 'Low-price completed booking for tenant-level analytics edge cases',
+  },
+  {
+    key: 'booking-user7-quiet-showcase-pending',
+    userEmail: 'user7@example.com',
+    organizerName: 'Quiet Harbor Labs',
+    eventName: 'Beta Product Showcase',
+    createdAt: isoDaysAgo(5, 12),
+    updatedAt: isoDaysAgo(4, 13),
+    checkIn: '2026-09-07T12:00:00.000Z',
+    checkOut: '2026-09-07T18:00:00.000Z',
+    totalPrice: 89,
+    status: BookingStatus.PENDING,
+    notes: 'Pending booking intentionally left without payment for manual flow tests',
   },
 ];
 
@@ -333,6 +472,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 199,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(1, 11),
+    updatedAt: isoDaysAgo(1, 14),
     stripeSessionId: 'seed_session_user1_summit_confirmed',
     stripePaymentIntentId: 'seed_pi_user1_summit_confirmed',
   },
@@ -341,6 +482,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 149,
     currency: 'usd',
     status: PaymentStatus.PENDING,
+    createdAt: isoDaysAgo(0, 8),
+    updatedAt: isoDaysAgo(0, 11),
     stripeSessionId: 'seed_session_user1_growth_pending',
   },
   {
@@ -348,6 +491,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 249,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(6, 10),
+    updatedAt: isoDaysAgo(5, 16),
     stripeSessionId: 'seed_session_user2_summit_completed',
     stripePaymentIntentId: 'seed_pi_user2_summit_completed',
   },
@@ -356,6 +501,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 179,
     currency: 'usd',
     status: PaymentStatus.FAILED,
+    createdAt: isoDaysAgo(12, 13),
+    updatedAt: isoDaysAgo(11, 10),
     stripeSessionId: 'seed_session_user2_expo_cancelled',
     stripePaymentIntentId: 'seed_pi_user2_expo_cancelled',
   },
@@ -364,6 +511,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 299,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(2, 12),
+    updatedAt: isoDaysAgo(1, 9),
     stripeSessionId: 'seed_session_user3_expo_confirmed',
     stripePaymentIntentId: 'seed_pi_user3_expo_confirmed',
   },
@@ -372,6 +521,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 49,
     currency: 'usd',
     status: PaymentStatus.PENDING,
+    createdAt: isoDaysAgo(4, 10),
+    updatedAt: isoDaysAgo(3, 15),
     stripeSessionId: 'seed_session_user3_meetup_pending',
   },
   {
@@ -379,6 +530,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 149,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(9, 11),
+    updatedAt: isoDaysAgo(8, 17),
     stripeSessionId: 'seed_session_user4_growth_completed',
     stripePaymentIntentId: 'seed_pi_user4_growth_completed',
   },
@@ -387,6 +540,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 49,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(15, 14),
+    updatedAt: isoDaysAgo(14, 10),
     stripeSessionId: 'seed_session_user4_meetup_confirmed',
     stripePaymentIntentId: 'seed_pi_user4_meetup_confirmed',
   },
@@ -395,6 +550,8 @@ const paymentSeeds: SeedPayment[] = [
     amount: 199,
     currency: 'usd',
     status: PaymentStatus.PENDING,
+    createdAt: isoDaysAgo(3, 9),
+    updatedAt: isoDaysAgo(2, 15),
     stripeSessionId: 'seed_session_user5_summit_pending',
   },
   {
@@ -402,8 +559,40 @@ const paymentSeeds: SeedPayment[] = [
     amount: 179,
     currency: 'usd',
     status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(24, 12),
+    updatedAt: isoDaysAgo(22, 10),
     stripeSessionId: 'seed_session_user5_expo_completed',
     stripePaymentIntentId: 'seed_pi_user5_expo_completed',
+  },
+  {
+    bookingKey: 'booking-user1-maple-brunch-cancelled',
+    amount: 35,
+    currency: 'usd',
+    status: PaymentStatus.FAILED,
+    createdAt: isoDaysAgo(20, 9),
+    updatedAt: isoDaysAgo(19, 11),
+    stripeSessionId: 'seed_session_user1_maple_brunch_cancelled',
+    stripePaymentIntentId: 'seed_pi_user1_maple_brunch_cancelled',
+  },
+  {
+    bookingKey: 'booking-user2-retreat-confirmed',
+    amount: 299,
+    currency: 'usd',
+    status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(7, 13),
+    updatedAt: isoDaysAgo(6, 10),
+    stripeSessionId: 'seed_session_user2_retreat_confirmed',
+    stripePaymentIntentId: 'seed_pi_user2_retreat_confirmed',
+  },
+  {
+    bookingKey: 'booking-user3-maple-market-completed',
+    amount: 25,
+    currency: 'usd',
+    status: PaymentStatus.SUCCEEDED,
+    createdAt: isoDaysAgo(17, 10),
+    updatedAt: isoDaysAgo(16, 16),
+    stripeSessionId: 'seed_session_user3_maple_market_completed',
+    stripePaymentIntentId: 'seed_pi_user3_maple_market_completed',
   },
 ];
 
@@ -427,6 +616,16 @@ const guestBookingSeeds: SeedGuestBooking[] = [
     guestCount: 6,
     status: BookingStatus.CONFIRMED,
     notes: '[seed-guest-booking-2] Large-party guest reservation for admin review',
+  },
+  {
+    fullName: 'Olivia Cruz',
+    email: 'olivia.cruz@example.com',
+    phone: '+1 555 224 0090',
+    bookingDate: '2026-11-17',
+    bookingTime: '19:15',
+    guestCount: 4,
+    status: BookingStatus.CANCELLED,
+    notes: '[seed-guest-booking-3] Cancelled guest reservation for dashboard edge-case testing',
   },
 ];
 
@@ -499,6 +698,19 @@ async function ensureSchemaIsCurrent(): Promise<void> {
       'Database schema is outdated: missing guest-booking columns on Booking. Run `npm run prisma:push` and then retry seeding.'
     );
   }
+}
+
+async function resetSeedData(): Promise<void> {
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "Payment",
+      "Booking",
+      "OrganizerStaff",
+      "Event",
+      "Organizer",
+      "User"
+    RESTART IDENTITY CASCADE
+  `);
 }
 
 async function upsertOrganizer(name: string, ownerId: number) {
@@ -583,6 +795,8 @@ async function upsertBooking(
 ) {
   const checkIn = new Date(bookingSeed.checkIn);
   const checkOut = new Date(bookingSeed.checkOut);
+  const createdAt = bookingSeed.createdAt ? new Date(bookingSeed.createdAt) : new Date();
+  const updatedAt = bookingSeed.updatedAt ? new Date(bookingSeed.updatedAt) : createdAt;
 
   const existing = await prisma.booking.findFirst({
     where: {
@@ -604,6 +818,8 @@ async function upsertBooking(
         totalPrice: bookingSeed.totalPrice,
         status: bookingSeed.status,
         notes: bookingSeed.notes,
+        createdAt,
+        updatedAt,
       },
       select: {
         id: true,
@@ -622,6 +838,8 @@ async function upsertBooking(
       totalPrice: bookingSeed.totalPrice,
       status: bookingSeed.status,
       notes: bookingSeed.notes,
+      createdAt,
+      updatedAt,
     },
     select: {
       id: true,
@@ -631,6 +849,9 @@ async function upsertBooking(
 }
 
 async function upsertPayment(paymentSeed: SeedPayment, bookingId: number) {
+  const createdAt = paymentSeed.createdAt ? new Date(paymentSeed.createdAt) : new Date();
+  const updatedAt = paymentSeed.updatedAt ? new Date(paymentSeed.updatedAt) : createdAt;
+
   return prisma.payment.upsert({
     where: {
       stripeSessionId: paymentSeed.stripeSessionId,
@@ -641,6 +862,8 @@ async function upsertPayment(paymentSeed: SeedPayment, bookingId: number) {
       currency: paymentSeed.currency,
       status: paymentSeed.status,
       stripePaymentIntentId: paymentSeed.stripePaymentIntentId ?? null,
+      createdAt,
+      updatedAt,
     },
     create: {
       bookingId,
@@ -649,6 +872,8 @@ async function upsertPayment(paymentSeed: SeedPayment, bookingId: number) {
       status: paymentSeed.status,
       stripeSessionId: paymentSeed.stripeSessionId,
       stripePaymentIntentId: paymentSeed.stripePaymentIntentId ?? null,
+      createdAt,
+      updatedAt,
     },
     select: {
       id: true,
@@ -700,6 +925,7 @@ async function upsertGuestBooking(guestBooking: SeedGuestBooking) {
 
 async function main(): Promise<void> {
   await ensureSchemaIsCurrent();
+  await resetSeedData();
 
   const usersByEmail = new Map<string, Awaited<ReturnType<typeof upsertUser>>>();
 
@@ -809,6 +1035,32 @@ async function main(): Promise<void> {
     `Seeded guest bookings: ${guestBookingSeeds.length} (shared Booking table, no auth required)`
   );
   console.info(`Seeded payments: ${paymentSeeds.length}`);
+  console.info('Business owner test logins:');
+  console.info(`  email: ${primaryOwnerEmail}`);
+  console.info('  password: (from SEED_OWNER_PASSWORD or changeMeOwner1!)');
+  console.info('  organizer: Northwind Live');
+  console.info('  email: owner2@example.com');
+  console.info('  password: changeMeOwner2!');
+  console.info('  organizer: Blue Harbor Events (suspended)');
+  console.info('  email: owner4@example.com');
+  console.info('  password: changeMeOwner4!');
+  console.info('  organizer: Quiet Harbor Labs');
+  console.info('  email: owner-no-organizer@example.com');
+  console.info('  password: changeMeOwner5!');
+  console.info('  organizer: none (permission edge-case)');
+  console.info('Admin test login:');
+  console.info('  email: admin@example.com');
+  console.info('  password: changeMeAdmin1!');
+  console.info('  email: admin.audit@example.com');
+  console.info('  password: changeMeAdmin2!');
+  console.info('Staff test logins:');
+  console.info('  email: staff1@example.com / password: changeMeStaff1! (single-tenant visibility)');
+  console.info('  email: staff2@example.com / password: changeMeStaff2! (multi-tenant visibility)');
+  console.info('  email: staff3@example.com / password: changeMeStaff3! (unassigned edge-case)');
+  console.info('User test logins:');
+  console.info('  email: user1@example.com / password: changeMeUser1! (mixed booking statuses)');
+  console.info('  email: user6@example.com / password: changeMeUser6! (no bookings edge-case)');
+  console.info('  email: user7@example.com / password: changeMeUser7! (pending booking without payment)');
 }
 
 main()

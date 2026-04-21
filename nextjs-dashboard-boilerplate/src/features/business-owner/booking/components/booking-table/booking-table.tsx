@@ -1,21 +1,25 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { DataTable } from '@/components/data-table'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/modal'
 import type { PaginatedResult, Booking } from '@/types/booking'
 
 import { BookingTableHeader } from './booking-table-header'
-import { BookingModal } from './booking-modal'
 import { createBookingColumns } from './columns'
 import { useBookingTable } from './use-booking-table'
+import BookingDetailPage from '../../page'
 
 type BookingTableProps = {
   initialData?: PaginatedResult<Booking>
 }
 
 export function BookingTable({ initialData }: BookingTableProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const editingBookingId = searchParams.get('edit')
 
   const {
     sorting,
@@ -35,23 +39,27 @@ export function BookingTable({ initialData }: BookingTableProps) {
     setCheckInDate,
     setCheckOutDate,
     reset,
-    createBooking,
-    isCreating,
     isDeleting,
     deleteBooking,
   } = useBookingTable({
     initialData,
-    onCreateSuccess: () => setIsModalOpen(false),
   })
 
   const columns = useMemo(
     () =>
       createBookingColumns({
+        onEdit: (id) => router.push(`/business-owner/bookings?edit=${id}`, { scroll: false }),
         onDelete: deleteBooking,
         isDeleting,
       }),
-    [deleteBooking, isDeleting]
+    [deleteBooking, isDeleting, router]
   )
+
+  const handleEditModalOpenChange = (open: boolean) => {
+    if (!open) {
+      router.push('/business-owner/bookings', { scroll: false })
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -65,7 +73,6 @@ export function BookingTable({ initialData }: BookingTableProps) {
         onCheckInDateChange={setCheckInDate}
         onCheckOutDateChange={setCheckOutDate}
         onReset={reset}
-        onCreate={() => setIsModalOpen(true)}
       />
 
       <DataTable
@@ -83,15 +90,19 @@ export function BookingTable({ initialData }: BookingTableProps) {
           onPageSizeChange: (size) => setPageSize(size),
           pageSizeOptions: [5, 10, 20, 50],
         }}
-        emptyMessage="No bookings match your filters yet. Create one to get started."
+        emptyMessage="No bookings match your filters yet."
       />
 
-      <BookingModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        title="Create booking"
-        onSubmit={(values) => createBooking(values)}
-      />
+      <Dialog open={Boolean(editingBookingId)} onOpenChange={handleEditModalOpenChange}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-0">
+          <DialogTitle className="sr-only">Edit booking</DialogTitle>
+          {editingBookingId ? (
+            <div className="p-6">
+              <BookingDetailPage bookingId={editingBookingId} />
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </section>
   )
 }

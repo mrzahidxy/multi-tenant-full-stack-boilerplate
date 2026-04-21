@@ -6,8 +6,9 @@ import { normalizeUserRole } from '@/types/user'
 const AUTH_ROUTES = new Set<string>(['login', 'register'])
 
 const ROUTE_ROLES: Record<string, ReadonlySet<string>> = {
-  admin: new Set(['SUPER_ADMIN', 'ADMIN']),
-  'business-owner': new Set(['SUPER_ADMIN', 'ADMIN', 'OWNER', 'STAFF']),
+  admin: new Set(['ADMIN']),
+  'business-owner': new Set(['ADMIN', 'OWNER', 'STAFF']),
+  user: new Set(['USER']),
 }
 
 function firstSegment(pathname: string) {
@@ -37,7 +38,8 @@ function homeForRole(role?: string) {
   const normalized = normalizeUserRole(role)
   if (ROUTE_ROLES.admin.has(normalized)) return '/admin/overview'
   if (ROUTE_ROLES['business-owner'].has(normalized)) return '/business-owner/dashboard'
-  return '/login'
+  if (ROUTE_ROLES.user.has(normalized)) return '/user/bookings'
+  return '/access-denied'
 }
 
 export default auth((req) => {
@@ -64,5 +66,5 @@ export default auth((req) => {
 
 export const config = {
   // Run only where needed. Static and api excluded by default here.
-  matcher: ['/login', '/register', '/admin/:path*', '/business-owner/:path*'],
+  matcher: ['/login', '/register', '/admin/:path*', '/business-owner/:path*', '/user/:path*'],
 }

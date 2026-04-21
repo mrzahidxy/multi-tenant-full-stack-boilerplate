@@ -3,12 +3,13 @@
 import { useMemo, useState } from 'react'
 import dynamic from 'next/dynamic'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, CreditCard, UsersRound, Wallet } from 'lucide-react'
+import { Activity, Receipt, UsersRound, Wallet } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Select } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/format'
+import { normalizeUserRole } from '@/types/user'
 
 import { ActivityList } from '../dashboard/components/activity-list'
 import { DashboardHeader } from '../dashboard/components/dashboard-header'
@@ -65,7 +66,7 @@ function StatCardSkeleton() {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-center text-sm text-slate-500">
+    <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
       {message}
     </div>
   )
@@ -76,6 +77,8 @@ export default function AnalyticsPage() {
   const [rangePreset, setRangePreset] = useState<RangePreset>('7d')
   const range = useMemo(() => getDateRange(rangePreset), [rangePreset])
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
+  const role = normalizeUserRole(session?.user?.role)
+  const canRequestAnalytics = role === 'ADMIN' || role === 'OWNER' || role === 'STAFF'
 
   const queryParams = useMemo(
     () => ({
@@ -93,35 +96,34 @@ export default function AnalyticsPage() {
   const overviewQuery = useQuery({
     queryKey: analyticsKeys.overview(queryParams),
     queryFn: () => fetchAnalyticsOverview(queryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const bookingsQuery = useQuery({
     queryKey: analyticsKeys.bookings(queryParams),
     queryFn: () => fetchAnalyticsBookings(queryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const paymentsQuery = useQuery({
     queryKey: analyticsKeys.payments(queryParams),
     queryFn: () => fetchAnalyticsPayments(queryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const eventsQuery = useQuery({
     queryKey: analyticsKeys.events(queryParams),
     queryFn: () => fetchAnalyticsEvents(queryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const usersQuery = useQuery({
     queryKey: analyticsKeys.users(queryParams),
     queryFn: () => fetchAnalyticsUsers(queryParams),
-    enabled: status !== 'loading' && Boolean(organizerId),
+    enabled: status !== 'loading' && canRequestAnalytics,
   })
 
   const overview = overviewQuery.data ?? null
-  const hasOrganizerScope = Boolean(organizerId)
   const requestError =
     overviewQuery.error ??
     bookingsQuery.error ??
@@ -141,7 +143,7 @@ export default function AnalyticsPage() {
 
     return [
       {
-        label: 'Total Revenue',
+        label: 'Revenue',
         value: formatCurrency(overview.paymentSummary.totalRevenue),
         helper: `Success ${overview.paymentSummary.successRate.toFixed(1)}%`,
         icon: <Wallet className="h-5 w-5" />,
@@ -150,13 +152,13 @@ export default function AnalyticsPage() {
         label: 'Bookings',
         value: overview.bookingSummary.totalBookings.toLocaleString(),
         helper: `AOV ${formatCurrency(overview.bookingSummary.averageOrderValue)}`,
-        icon: <Activity className="h-5 w-5" />,
+        icon: <Receipt className="h-5 w-5" />,
       },
       {
         label: 'Events',
         value: overview.eventSummary.totalEvents.toLocaleString(),
         helper: `Published ${overview.eventSummary.publishedEvents.toLocaleString()}`,
-        icon: <CreditCard className="h-5 w-5" />,
+        icon: <Activity className="h-5 w-5" />,
       },
       {
         label: 'Users',
@@ -195,17 +197,17 @@ export default function AnalyticsPage() {
     [usersQuery.data?.staffPerformance.data],
   )
 
-  const isLoadingOverview = hasOrganizerScope && overviewQuery.isLoading
-  const isLoadingBookings = hasOrganizerScope && bookingsQuery.isLoading
-  const isLoadingPayments = hasOrganizerScope && paymentsQuery.isLoading
-  const isLoadingEvents = hasOrganizerScope && eventsQuery.isLoading
-  const isLoadingUsers = hasOrganizerScope && usersQuery.isLoading
+  const isLoadingOverview = canRequestAnalytics && overviewQuery.isLoading
+  const isLoadingBookings = canRequestAnalytics && bookingsQuery.isLoading
+  const isLoadingPayments = canRequestAnalytics && paymentsQuery.isLoading
+  const isLoadingEvents = canRequestAnalytics && eventsQuery.isLoading
+  const isLoadingUsers = canRequestAnalytics && usersQuery.isLoading
 
   return (
     <div className="space-y-8">
       <DashboardHeader
         title="Analytics"
-        description="Organizer, booking, payment, event, and staff performance from the Express API"
+        description="Deep-dive organizer trends and performance breakdowns from the Express API"
         actions={
           <Select
             value={rangePreset}
@@ -223,16 +225,6 @@ export default function AnalyticsPage() {
         }
       />
 
-      {!hasOrganizerScope && status !== 'loading' ? (
-        <Alert>
-          <AlertTitle>No organizer assigned</AlertTitle>
-          <AlertDescription>
-            This analytics view is scoped to a business-owner organizer. Link the signed-in
-            account to an organizer to load live reports.
-          </AlertDescription>
-        </Alert>
-      ) : null}
-
       {errorMessage ? (
         <Alert variant="destructive">
           <AlertTitle>Unable to load analytics</AlertTitle>
@@ -241,7 +233,7 @@ export default function AnalyticsPage() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {!hasOrganizerScope
+        {!canRequestAnalytics
           ? Array.from({ length: 4 }).map((_, index) => (
               <StatCardSkeleton key={index} />
             ))
@@ -267,7 +259,7 @@ export default function AnalyticsPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <SectionCard title="Recent Activity" className="lg:col-span-2">
-          {!hasOrganizerScope ? (
+          {!canRequestAnalytics ? (
             <EmptyState message="Organizer analytics are unavailable until the account is scoped." />
           ) : isLoadingOverview ? (
             <div className="space-y-3">

@@ -61,7 +61,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           {getThemeInitializerScript()}
         </Script>
       </head>
-      <body className={`${inter.className} bg-background text-foreground`}>
+      <body
+        suppressHydrationWarning
+        className={`${inter.className} bg-background text-foreground`}
+      >
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

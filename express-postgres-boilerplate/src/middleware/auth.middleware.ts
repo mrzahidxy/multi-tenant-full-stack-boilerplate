@@ -15,6 +15,7 @@ type GuardOptions =
   | {
       roles?: Role[];
       permissions?: string[];
+      permissionMode?: 'all' | 'any';
     };
 
 const USER_SELECT = {
@@ -118,12 +119,14 @@ async function loadContextFromRequest(
   return loadAuthenticatedContext(token);
 }
 
-const normalizeOptions = (allowed?: GuardOptions): { roles?: Role[]; permissions?: string[] } => {
-  if (!allowed) return {};
+const normalizeOptions = (
+  allowed?: GuardOptions
+): { roles?: Role[]; permissions?: string[]; permissionMode: 'all' | 'any' } => {
+  if (!allowed) return { permissionMode: 'all' };
   if (Array.isArray(allowed)) {
-    return { roles: allowed };
+    return { roles: allowed, permissionMode: 'all' };
   }
-  return allowed;
+  return { ...allowed, permissionMode: allowed.permissionMode ?? 'all' };
 };
 
 export const requireAuth =
@@ -142,7 +145,10 @@ export const requireAuth =
       const hasRole = !guard.roles || guard.roles.some((role) => user.roles.includes(role));
 
       const hasPermission =
-        !guard.permissions || guard.permissions.some((permission) => user.permissions.includes(permission));
+        !guard.permissions ||
+        (guard.permissionMode === 'any'
+          ? guard.permissions.some((permission) => user.permissions.includes(permission))
+          : guard.permissions.every((permission) => user.permissions.includes(permission)));
 
       if (!hasRole || !hasPermission) {
         throw new HttpError(403, 'You do not have permission to access this resource');

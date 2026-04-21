@@ -1,7 +1,14 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
-import { BarChart3, LayoutDashboard, MenuSquare, Settings, Users } from 'lucide-react'
+import {
+  BarChart3,
+  CalendarDays,
+  LayoutDashboard,
+  MenuSquare,
+  Settings,
+  Users,
+} from 'lucide-react'
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -24,6 +31,11 @@ const baseNavigation: NavItem[] = [
     href: '/business-owner/bookings',
     label: 'Bookings',
     icon: MenuSquare,
+  },
+  {
+    href: '/business-owner/event',
+    label: 'Events',
+    icon: CalendarDays,
   },
   {
     href: '/business-owner/analytics',

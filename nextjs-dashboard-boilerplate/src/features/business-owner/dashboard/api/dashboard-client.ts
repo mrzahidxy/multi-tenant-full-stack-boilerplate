@@ -12,12 +12,23 @@ export type DashboardOverviewQuery = AnalyticsQueryParams
 export type DashboardOverviewResponse = AnalyticsOverviewResponse
 
 const DEFAULT_TOP_LIMIT = 6
+type ApiEnvelope<T> = { data: T; meta?: Record<string, unknown>; message?: string }
+
+function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as ApiEnvelope<T>).data
+  }
+
+  return payload as T
+}
 
 export async function fetchDashboardOverview(
   query?: DashboardOverviewQuery,
   scope?: { businessId?: string | null; organizerId?: string | null },
 ) {
-  return apiClient.get<DashboardOverviewResponse>('/api/analytics/overview', {
+  const response = await apiClient.get<
+    DashboardOverviewResponse | ApiEnvelope<DashboardOverviewResponse>
+  >('/api/analytics/overview', {
     auth: true,
     cache: 'no-store',
     query: buildScopedAnalyticsQuery(
@@ -28,4 +39,6 @@ export async function fetchDashboardOverview(
       scope,
     ),
   })
+
+  return unwrapApiEnvelope(response)
 }

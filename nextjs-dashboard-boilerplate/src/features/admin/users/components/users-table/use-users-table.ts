@@ -13,6 +13,8 @@ import { useSession } from 'next-auth/react'
 import { toast } from 'sonner'
 
 import { formatDate } from '@/lib/format'
+import { toTitleCase } from '@/lib/utils'
+import { isAdminRole } from '@/types/user'
 
 import {
   createUser,
@@ -45,14 +47,6 @@ type UseUsersTableState = {
   }
 }
 
-function toTitleCase(value: string) {
-  return value
-    .toLowerCase()
-    .split(/[\s_-]+/)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ')
-}
-
 function mapUserToDirectoryUser(user: AdminUser): DirectoryUser {
   const roleValue = (user.role ?? 'OWNER') as AdminUserRole
   const normalizedStatus =
@@ -61,13 +55,18 @@ function mapUserToDirectoryUser(user: AdminUser): DirectoryUser {
       : 'ACTIVE'
   const statusValue = normalizedStatus as AdminUserStatus
   const statusLabel = STATUS_LABELS[statusValue] ?? toTitleCase(statusValue)
+  const trimmedName = user.name?.trim() ?? ''
+  const derivedName = trimmedName || user.email.split('@')[0] || '—'
+  const organizerLabel = user.organizerName?.trim() || user.business?.trim() || '—'
 
   return {
     id: user.id,
     email: user.email,
+    name: derivedName,
+    organizer: organizerLabel,
     roleLabel: ROLE_LABELS[roleValue] ?? toTitleCase(roleValue),
     roleValue,
-    business: user.business?.trim() || '—',
+    business: organizerLabel,
     statusLabel,
     statusValue,
     createdDate: user.createdAt ? formatDate(user.createdAt) : '—',
@@ -116,7 +115,7 @@ export function useUsersTable() {
 
   const currentUserId = session?.user?.id ?? null
   const currentRole = session?.user?.role
-  const isAdmin = currentRole === 'ADMIN' || currentRole === 'SUPER_ADMIN'
+  const isAdmin = isAdminRole(currentRole)
 
   const deferredSearch = useDeferredValue(searchQuery)
 

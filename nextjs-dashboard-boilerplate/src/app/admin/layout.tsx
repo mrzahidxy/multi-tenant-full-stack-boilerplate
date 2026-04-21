@@ -3,6 +3,7 @@ import { AdminShell } from '@/features/admin';
 import type { Route } from 'next';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
+import { isAdminRole } from '@/types/user';
 
 
 type AdminLayoutProps = {
@@ -16,9 +17,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     redirect('/login')
   }
 
-  const role = session.user.role
-
-  if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+  if (!isAdminRole(session.user.role)) {
     redirect('/business-owner/dashboard' as Route)
   }
 

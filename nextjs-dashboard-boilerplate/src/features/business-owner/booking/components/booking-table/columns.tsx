@@ -1,8 +1,8 @@
 import type { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatCurrency, formatDate } from '@/lib/format';
 import type { Booking } from '@/types/booking';
 
@@ -67,11 +67,13 @@ const BASE_COLUMNS: ColumnDef<Booking>[] = [
 
 type CreateColumnsOptions = {
   onDelete: (id: number) => void
+  onEdit: (id: number) => void
   isDeleting: boolean
 }
 
 export function createBookingColumns({
   onDelete,
+  onEdit,
   isDeleting,
 }: CreateColumnsOptions): ColumnDef<Booking>[] {
   return [
@@ -81,21 +83,21 @@ export function createBookingColumns({
       header: () => 'Actions',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Link
-            className="inline-flex items-center gap-1 text-sm font-semibold text-sky-600 hover:text-sky-500"
-            href={`/business-owner/bookings/${row.original.id}`}
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            Edit
-          </Link>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="text-rose-600 hover:text-rose-500"
+            className={cn('hover:border-teal-300 hover:text-teal-600')}
+            onClick={() => onEdit(row.original.id)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-rose-600 hover:border-rose-200 hover:text-rose-600"
             onClick={() => onDelete(row.original.id)}
             disabled={isDeleting}
           >
-            <Trash2 className="mr-1 h-3.5 w-3.5" />
             Delete
           </Button>
         </div>

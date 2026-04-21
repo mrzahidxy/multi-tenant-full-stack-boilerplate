@@ -41,8 +41,14 @@ export const assignStaffSchema = z.object({
   userId: z.coerce.number().int().positive(),
 });
 
+export const staffCandidateQuerySchema = z.object({
+  search: z.string().trim().min(2, 'Search must be at least 2 characters'),
+  limit: z.coerce.number().int().positive().max(20).optional(),
+});
+
 export type CreateOrganizerInput = z.infer<typeof createOrganizerSchema>;
 export type UpdateOrganizerInput = z.infer<typeof updateOrganizerSchema>;
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type AssignStaffInput = z.infer<typeof assignStaffSchema>;
+export type StaffCandidateQueryInput = z.infer<typeof staffCandidateQuerySchema>;

@@ -9,6 +9,7 @@ import {
   organizerIdParamSchema,
   organizerEventParamsSchema,
   organizerStaffParamsSchema,
+  staffCandidateQuerySchema,
   createOrganizerSchema,
   createEventSchema,
   updateOrganizerSchema,
@@ -90,6 +91,14 @@ router.get(
   requireAuth({ permissions: ['ORGANIZER_MANAGE_STAFF'] }),
   validateRequest(organizerIdParamSchema, 'params'),
   organizerController.listStaff
+);
+
+router.get(
+  '/:organizerId/staff-candidates',
+  requireAuth({ permissions: ['ORGANIZER_MANAGE_STAFF'] }),
+  validateRequest(organizerIdParamSchema, 'params'),
+  validateRequest(staffCandidateQuerySchema, 'query'),
+  organizerController.listStaffCandidates
 );
 
 router.post(

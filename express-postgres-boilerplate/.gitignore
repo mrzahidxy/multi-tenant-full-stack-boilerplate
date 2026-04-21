@@ -238,11 +238,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Prisma Engines
-# Keep the Prisma engines out of version control
-# They will be downloaded when you run `prisma generate`
-prisma/migrations/*/migration.sql
-
 # In development, keep the Prisma schema and migration files
 # But ignore generated client code
 node_modules/

@@ -8,9 +8,10 @@ import { normalizeUserRole } from '@/types/user'
 
 type BusinessOwnerLayoutProps = {
   children: ReactNode
+  modal: ReactNode
 }
 
-export default async function BusinessOwnerLayout({ children }: BusinessOwnerLayoutProps) {
+export default async function BusinessOwnerLayout({ children, modal }: BusinessOwnerLayoutProps) {
   const session = await auth()
 
   if (!session) {
@@ -19,9 +20,14 @@ export default async function BusinessOwnerLayout({ children }: BusinessOwnerLay
 
   const role = normalizeUserRole(session.user.role)
 
-  if (role !== 'OWNER' && role !== 'STAFF' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+  if (role !== 'OWNER' && role !== 'STAFF' && role !== 'ADMIN') {
     redirect('/login' as Route)
   }
 
-  return <AppShell>{children}</AppShell>
+  return (
+    <AppShell>
+      {children}
+      {modal}
+    </AppShell>
+  )
 }

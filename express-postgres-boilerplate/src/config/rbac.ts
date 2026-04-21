@@ -69,7 +69,12 @@ const ALL_PERMISSIONS = [...PERMISSION_KEYS];
 export const ROLE_PRESETS: Record<Role, PermissionKey[]> = {
   [Role.ADMIN]: ALL_PERMISSIONS,
   [Role.OWNER]: ALL_PERMISSIONS,
-  [Role.STAFF]: ['ANALYTICS_READ', 'ORGANIZER_READ_OWN', 'ORGANIZER_UPDATE_OWN'],
+  [Role.STAFF]: [
+    'ANALYTICS_READ',
+    'ORGANIZER_READ_OWN',
+    'EVENT_READ',
+    'ORGANIZER_UPDATE_OWN',
+  ],
   [Role.USER]: ['EVENT_READ'],
 };
 

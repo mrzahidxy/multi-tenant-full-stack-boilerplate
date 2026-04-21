@@ -1,39 +1,29 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
-import { CalendarDays, ShieldCheck, UserPlus, Users } from 'lucide-react'
+import { ExternalLink, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { DashboardHeader } from '../dashboard/components/dashboard-header'
 import { SectionCard } from '../dashboard/components/section-card'
-import { StatCard } from '../dashboard/components/stat-card'
 import { organizerKeys } from './api/organizer-keys'
 import {
   addOrganizerStaff,
-  createOrganizerEvent,
-  deleteOrganizerEvent,
   getOrganizer,
-  listOrganizerEvents,
+  listOrganizerStaffCandidates,
   listOrganizerStaff,
   removeOrganizerStaff,
   updateOrganizer,
 } from './api/organizer-client'
-import { userKeys } from '@/features/admin/users/api/user-keys'
-import {
-  listUsers,
-  type AdminUser,
-} from '@/features/admin/users/api/user-client'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { FormField } from '@/components/ui/form-field'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { getRbacDefinitions } from '@/lib/api/rbac-client'
-import { rbacKeys } from '@/lib/api/rbac-keys'
-import { formatCurrency, formatRelativeDate } from '@/lib/format'
+import { formatRelativeDate } from '@/lib/format'
 import { resolveOrganizerScopeId } from '@/features/business-owner/analytics/utils'
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -49,18 +39,12 @@ export default function TeamPage() {
   const { data: session } = useSession()
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
   const role = session?.user.role ?? 'USER'
-  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN'
   const canManageOrganizer = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER'
   const canManageStaff = canManageOrganizer
 
   const [organizerName, setOrganizerName] = useState('')
-  const [selectedUserId, setSelectedUserId] = useState('')
-  const [eventForm, setEventForm] = useState({
-    name: '',
-    description: '',
-    price: '0',
-    isPublished: 'true',
-  })
+  const [candidateEmail, setCandidateEmail] = useState('')
+  const candidateSearch = candidateEmail.trim()
 
   const organizerQuery = useQuery({
     queryKey: organizerId ? organizerKeys.detail(organizerId) : ['organizers', 'detail', 'unassigned'],
@@ -68,74 +52,33 @@ export default function TeamPage() {
     enabled: Boolean(organizerId),
   })
 
-  const eventsQuery = useQuery({
-    queryKey: organizerId ? organizerKeys.events(organizerId) : ['organizers', 'events', 'unassigned'],
-    queryFn: () => listOrganizerEvents(organizerId as string),
-    enabled: Boolean(organizerId),
-  })
-
   const staffQuery = useQuery({
     queryKey: organizerId ? organizerKeys.staff(organizerId) : ['organizers', 'staff', 'unassigned'],
     queryFn: () => listOrganizerStaff(organizerId as string),
-    enabled: Boolean(organizerId),
+    enabled: Boolean(organizerId) && canManageStaff,
   })
 
-  const usersQuery = useQuery({
-    queryKey: userKeys.list({ limit: 50, page: 1 }),
-    queryFn: () => listUsers({ limit: 50, page: 1 }),
-    enabled: isAdmin,
-  })
-
-  const rolesQuery = useQuery({
-    queryKey: rbacKeys.definitions(),
-    queryFn: getRbacDefinitions,
+  const staffCandidatesQuery = useQuery({
+    queryKey: organizerId
+      ? organizerKeys.staffCandidates(organizerId, candidateSearch)
+      : ['organizers', 'staff-candidates', 'unassigned', candidateSearch],
+    queryFn: () => listOrganizerStaffCandidates(organizerId as string, candidateSearch),
+    enabled: Boolean(organizerId) && canManageStaff && candidateSearch.length >= 2,
   })
 
   const organizer = organizerQuery.data ?? null
-  const events = eventsQuery.data ?? []
   const staff = staffQuery.data ?? []
-  const users = usersQuery.data?.users ?? []
+  const staffCandidates = staffCandidatesQuery.data ?? []
+  const candidateEmailLower = candidateSearch.toLowerCase()
+  const matchedCandidate = staffCandidates.find(
+    (candidate) => candidate.email.toLowerCase() === candidateEmailLower
+  )
 
   useEffect(() => {
     if (organizer?.name) {
       setOrganizerName(organizer.name)
     }
   }, [organizer?.name])
-
-  const selectableUsers = useMemo(() => {
-    const existingStaff = new Set(staff.map((member) => member.id))
-
-    return users.filter((user) => !existingStaff.has(user.id))
-  }, [staff, users])
-
-  const stats = useMemo(
-    () => [
-      {
-        label: 'Organizer',
-        value: organizer ? 1 : 0,
-        helper: organizer?.status ?? 'Unassigned',
-        icon: <ShieldCheck className="h-5 w-5" />,
-      },
-      {
-        label: 'Events',
-        value: events.length,
-        helper: `${events.filter((event) => event.isPublished).length} published`,
-        icon: <CalendarDays className="h-5 w-5" />,
-      },
-      {
-        label: 'Staff',
-        value: staff.length,
-        helper: 'Assigned to this organizer',
-        icon: <Users className="h-5 w-5" />,
-      },
-      {
-        label: 'Roles',
-        value: rolesQuery.data?.length ?? 0,
-        helper: 'Live RBAC definitions',
-      },
-    ],
-    [events, organizer, rolesQuery.data, staff.length],
-  )
 
   const organizerMutation = useMutation({
     mutationFn: (name: string) => updateOrganizer(organizerId as string, { name }),
@@ -149,46 +92,15 @@ export default function TeamPage() {
     },
   })
 
-  const eventMutation = useMutation({
-    mutationFn: () =>
-      createOrganizerEvent(organizerId as string, {
-        description: eventForm.description.trim() || undefined,
-        isPublished: eventForm.isPublished === 'true',
-        name: eventForm.name.trim(),
-        price: Number(eventForm.price),
-      }),
-    onSuccess: () => {
-      toast.success('Event created')
-      setEventForm({
-        name: '',
-        description: '',
-        price: '0',
-        isPublished: 'true',
-      })
-      queryClient.invalidateQueries({ queryKey: organizerKeys.events(organizerId as string) })
-    },
-    onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, 'Unable to create event'))
-    },
-  })
-
-  const deleteEventMutation = useMutation({
-    mutationFn: (eventId: string) => deleteOrganizerEvent(organizerId as string, eventId),
-    onSuccess: () => {
-      toast.success('Event removed')
-      queryClient.invalidateQueries({ queryKey: organizerKeys.events(organizerId as string) })
-    },
-    onError: (mutationError) => {
-      toast.error(getErrorMessage(mutationError, 'Unable to delete event'))
-    },
-  })
-
   const addStaffMutation = useMutation({
     mutationFn: (userId: number) => addOrganizerStaff(organizerId as string, { userId }),
     onSuccess: () => {
       toast.success('Staff member added')
-      setSelectedUserId('')
+      setCandidateEmail('')
       queryClient.invalidateQueries({ queryKey: organizerKeys.staff(organizerId as string) })
+      queryClient.invalidateQueries({
+        queryKey: organizerKeys.staffCandidates(organizerId as string, candidateSearch),
+      })
     },
     onError: (mutationError) => {
       toast.error(getErrorMessage(mutationError, 'Unable to add staff member'))
@@ -200,6 +112,9 @@ export default function TeamPage() {
     onSuccess: () => {
       toast.success('Staff member removed')
       queryClient.invalidateQueries({ queryKey: organizerKeys.staff(organizerId as string) })
+      queryClient.invalidateQueries({
+        queryKey: organizerKeys.staffCandidates(organizerId as string, candidateSearch),
+      })
     },
     onError: (mutationError) => {
       toast.error(getErrorMessage(mutationError, 'Unable to remove staff member'))
@@ -215,53 +130,37 @@ export default function TeamPage() {
     organizerMutation.mutate(organizerName.trim())
   }
 
-  const handleCreateEvent = () => {
-    if (!organizerId) {
-      toast.error('Your account is not linked to an organizer')
-      return
-    }
-
-    if (!eventForm.name.trim()) {
-      toast.error('Event name is required')
-      return
-    }
-
-    if (!Number.isFinite(Number(eventForm.price))) {
-      toast.error('Price must be a valid number')
-      return
-    }
-
-    eventMutation.mutate()
-  }
-
   const handleAddStaff = () => {
-    if (!selectedUserId) {
-      toast.error('Select a user to add')
+    if (!candidateSearch) {
+      toast.error('Enter an email address')
       return
     }
 
-    const userId = Number(selectedUserId)
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-      toast.error('User ID must be a positive integer')
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailPattern.test(candidateSearch)) {
+      toast.error('Enter a valid email address')
       return
     }
 
-    addStaffMutation.mutate(userId)
+    if (staffCandidatesQuery.isLoading) {
+      toast.error('Still checking that email, please try again')
+      return
+    }
+
+    if (!matchedCandidate) {
+      toast.error('No assignable user found for that email')
+      return
+    }
+
+    addStaffMutation.mutate(matchedCandidate.id)
   }
 
   return (
     <div className="space-y-8">
       <DashboardHeader
-        title="Organizer Team"
-        description="Manage organizer profile, events, staff, and role definitions from the backend API"
+        title="Team"
+        description="Manage organizer profile and staff assignments using supported endpoints."
       />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.label} {...stat} />
-        ))}
-      </div>
 
       {!organizerId ? (
         <SectionCard title="Organizer Access">
@@ -275,6 +174,15 @@ export default function TeamPage() {
           <SectionCard
             title="Organizer Profile"
             subtitle="Live organizer metadata from the backend"
+            actions={
+              <Link
+                href={`/organizers/${organizerId}`}
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <ExternalLink className="h-4 w-4" />
+                View public page
+              </Link>
+            }
           >
             <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
               <FormField
@@ -310,148 +218,24 @@ export default function TeamPage() {
           </SectionCard>
 
           <SectionCard
-            title="Organizer Events"
-            subtitle="Read and create organizer events"
-            actions={
-              canManageOrganizer ? (
-                <Button onClick={handleCreateEvent} disabled={eventMutation.isPending}>
-                  {eventMutation.isPending ? 'Creating...' : 'Create event'}
-                </Button>
-              ) : null
-            }
-          >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FormField label="Event name" htmlFor="event-name">
-                <Input
-                  id="event-name"
-                  value={eventForm.name}
-                  onChange={(event) =>
-                    setEventForm((current) => ({ ...current, name: event.target.value }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-              <FormField label="Price" htmlFor="event-price">
-                <Input
-                  id="event-price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={eventForm.price}
-                  onChange={(event) =>
-                    setEventForm((current) => ({ ...current, price: event.target.value }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-              <FormField label="Publish status" htmlFor="event-published">
-                <Select
-                  id="event-published"
-                  value={eventForm.isPublished}
-                  onChange={(event) =>
-                    setEventForm((current) => ({
-                      ...current,
-                      isPublished: event.target.value,
-                    }))
-                  }
-                  disabled={!canManageOrganizer}
-                >
-                  <option value="true">Published</option>
-                  <option value="false">Draft</option>
-                </Select>
-              </FormField>
-              <FormField label="Description" htmlFor="event-description">
-                <Input
-                  id="event-description"
-                  value={eventForm.description}
-                  onChange={(event) =>
-                    setEventForm((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
-                  disabled={!canManageOrganizer}
-                />
-              </FormField>
-            </div>
-
-            <div className="space-y-4">
-              {eventsQuery.isLoading ? (
-                <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                  <Spinner size="sm" />
-                  Loading organizer events...
-                </div>
-              ) : events.length ? (
-                events.map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold text-slate-900">{event.name}</p>
-                        <Badge variant={event.isPublished ? 'success' : 'outline'}>
-                          {event.isPublished ? 'Published' : 'Draft'}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        {event.description || 'No description'}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {formatCurrency(event.price)} • Updated{' '}
-                        {event.updatedAt ? formatRelativeDate(event.updatedAt) : 'unknown'}
-                      </p>
-                    </div>
-                    {canManageOrganizer ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => deleteEventMutation.mutate(event.id)}
-                        disabled={deleteEventMutation.isPending}
-                      >
-                        Remove
-                      </Button>
-                    ) : null}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
-                  No organizer events were returned by the backend.
-                </div>
-              )}
-            </div>
-          </SectionCard>
-
-          <SectionCard
             title="Organizer Staff"
-            subtitle="Assign and remove staff members for this organizer"
+            subtitle="Search USER/STAFF by email. USER accounts become STAFF when assigned."
             actions={
               canManageStaff ? (
                 <div className="flex items-end gap-3">
-                  <div className="min-w-[220px]">
-                    {isAdmin ? (
-                      <Select
-                        value={selectedUserId}
-                        onChange={(event) => setSelectedUserId(event.target.value)}
-                        disabled={addStaffMutation.isPending}
-                      >
-                        <option value="">Select a user</option>
-                        {selectableUsers.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.name ?? user.email} ({user.role})
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <Input
-                        value={selectedUserId}
-                        onChange={(event) => setSelectedUserId(event.target.value)}
-                        placeholder="Enter user ID"
-                        inputMode="numeric"
-                        disabled={addStaffMutation.isPending}
-                      />
-                    )}
+                  <div className="min-w-[220px] space-y-2">
+                    <Input
+                      value={candidateEmail}
+                      onChange={(event) => setCandidateEmail(event.target.value)}
+                      placeholder="Type user email"
+                      type="email"
+                      disabled={addStaffMutation.isPending}
+                    />
                   </div>
-                  <Button onClick={handleAddStaff} disabled={addStaffMutation.isPending}>
+                  <Button
+                    onClick={handleAddStaff}
+                    disabled={addStaffMutation.isPending || !candidateSearch}
+                  >
                     <UserPlus className="mr-2 h-4 w-4" />
                     Add staff
                   </Button>
@@ -460,10 +244,37 @@ export default function TeamPage() {
             }
           >
             <div className="space-y-4">
+              {canManageStaff && candidateSearch.length > 0 && candidateSearch.length < 2 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+                  Enter at least 2 characters of the user email to search.
+                </div>
+              ) : null}
+              {canManageStaff &&
+              candidateSearch.length >= 2 &&
+              !staffCandidatesQuery.isLoading &&
+              !staffCandidates.length ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
+                  No assignable users match that email.
+                </div>
+              ) : null}
+              {canManageStaff && candidateSearch.length >= 2 && matchedCandidate ? (
+                <div className="rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm text-teal-700">
+                  Match found: {matchedCandidate.name ?? matchedCandidate.email} ({matchedCandidate.role})
+                </div>
+              ) : null}
+              {staffCandidatesQuery.isError ? (
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+                  {getErrorMessage(staffCandidatesQuery.error, 'Unable to search users')}
+                </div>
+              ) : null}
               {staffQuery.isLoading ? (
                 <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                   <Spinner size="sm" />
                   Loading organizer staff...
+                </div>
+              ) : !canManageStaff ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
+                  You do not have permission to view or manage organizer staff.
                 </div>
               ) : staff.length ? (
                 staff.map((member, index) => (
@@ -501,65 +312,10 @@ export default function TeamPage() {
               )}
             </div>
           </SectionCard>
+
         </>
       )}
 
-      {isAdmin ? (
-        <SectionCard
-          title="Visible Users"
-          subtitle="Admin-backed user directory used for staff assignment"
-        >
-          <div className="space-y-4">
-            {usersQuery.isLoading ? (
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                <Spinner size="sm" />
-                Loading users...
-              </div>
-            ) : users.length ? (
-              users.slice(0, 12).map((member: AdminUser, index) => (
-                <div
-                  key={`${member.id || 'missing-id'}-${member.email || 'missing-email'}-${index}`}
-                  className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      {member.name ?? 'Unnamed user'}
-                    </p>
-                    <p className="text-xs text-slate-500">{member.email}</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="outline">{member.role}</Badge>
-                    <Badge variant={member.status === 'ACTIVE' ? 'success' : 'outline'}>
-                      {member.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
-                No users were returned by the backend.
-              </div>
-            )}
-          </div>
-        </SectionCard>
-      ) : null}
-
-      <SectionCard title="Permission Levels" subtitle="Definitions returned by `/rbac/definitions`">
-        <div className="space-y-4">
-          {(rolesQuery.data ?? []).map((level) => (
-            <div
-              key={level.role}
-              className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-slate-900">{level.role}</p>
-                <Badge variant="outline">{level.permissions.length} permissions</Badge>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">{level.description}</p>
-            </div>
-          ))}
-        </div>
-      </SectionCard>
     </div>
   )
 }

@@ -172,9 +172,11 @@ export function extractEntity<T>(
   keys: string[],
   normalizer: (value: unknown) => T,
 ): T {
-  const record = toObject(payload)
+  const records = [toObject(payload), toObject(unwrapData(payload))].filter(
+    (record): record is Record<string, unknown> => Boolean(record),
+  )
 
-  if (record) {
+  for (const record of records) {
     for (const key of keys) {
       if (record[key] !== undefined) {
         return normalizer(record[key])
