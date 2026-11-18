@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
     "start:prod": "node dist/server.js",
+    "seed:starter": "ts-node --project tsconfig.json prisma/starter-seed.ts",
     "seed": "ts-node --project tsconfig.json prisma/seed.ts",
     "db:setup": "npm run prisma:migrate && npm run seed",
     "prisma:generate": "prisma generate",

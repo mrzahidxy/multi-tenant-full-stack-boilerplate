@@ -39,20 +39,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: express-postgres-boilerplate/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
       - run: npm run prisma:migrate:deploy
-      - name: Check API health
+      - run: npm run seed:starter
+      - name: Check API health and project isolation
         run: |
           node dist/server.js > api.log 2>&1 &
           api_pid=$!
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
           for attempt in {1..20}; do
             if curl --fail --silent --max-time 2 http://127.0.0.1:8080/health; then
+              node --test tests/projects.test.cjs
               exit 0
             fi
             if ! kill -0 "$api_pid" 2>/dev/null; then
@@ -75,7 +77,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: nextjs-dashboard-boilerplate/package-lock.json
       - run: npm ci

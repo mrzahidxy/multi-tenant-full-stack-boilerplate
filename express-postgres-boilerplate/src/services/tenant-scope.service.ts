@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { Role, type Prisma } from '@prisma/client';
 
 import type { AuthenticatedUser } from '../types/user';
 import { HttpError } from '../utils/http-error';
@@ -140,3 +140,13 @@ export const resolveOrganizerTenantScope = async (
 
   throw new HttpError(403, forbiddenMessage);
 };
+
+// Use a relational predicate for writes so the mutation itself is tenant-scoped.
+export function organizerMembershipScope(actor: AuthenticatedUser): Prisma.OrganizerWhereInput {
+  const { id, role } = actor;
+  if (role === Role.OWNER) return { ownerId: id, isSuspended: false };
+  if (role === Role.STAFF) {
+    return { staffMembers: { some: { userId: id } }, isSuspended: false };
+  }
+  return { OR: [] };
+}

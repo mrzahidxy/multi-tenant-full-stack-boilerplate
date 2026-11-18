@@ -10,6 +10,7 @@ import organizerRoutes from './organizer.routes';
 import analyticsRoutes from './analytics.routes';
 import adminRoutes from './admin.routes';
 import publicRoutes from './public.routes';
+import projectRoutes from './project.routes';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/rbac', rbacRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/admin', adminRoutes);
 router.use('/public', publicRoutes);
+router.use('/projects', projectRoutes);
 
 export default router;
