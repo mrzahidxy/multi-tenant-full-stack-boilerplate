@@ -40,6 +40,6 @@ for (const key of ['DATABASE_URL', 'DIRECT_URL']) {
 JS
   docker compose up -d --wait db
   npm run prisma:migrate:deploy
-  if [[ "${1:-}" == --seed ]]; then npm run seed; fi
+  if [[ "${1:-}" == --seed ]]; then npm run seed:starter; fi
 )
 (cd "$dashboard" && npm ci)

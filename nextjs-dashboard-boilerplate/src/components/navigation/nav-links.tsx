@@ -5,6 +5,7 @@ import {
   BarChart3,
   CalendarDays,
   LayoutDashboard,
+  FolderKanban,
   MenuSquare,
   Settings,
   Users,
@@ -22,6 +23,11 @@ type NavItem = {
 }
 
 const baseNavigation: NavItem[] = [
+  {
+    href: '/business-owner/projects',
+    label: 'Projects',
+    icon: FolderKanban,
+  },
   {
     href: '/business-owner/dashboard',
     label: 'Dashboard',

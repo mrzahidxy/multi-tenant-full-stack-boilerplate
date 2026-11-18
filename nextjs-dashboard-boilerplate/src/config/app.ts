@@ -1,16 +1,16 @@
 import { env } from '@/config/env'
 
 export const appConfig = {
-  name: 'Event Booking Dashboard',
+  name: 'Workspace Dashboard',
   description:
-    'Production-ready Next.js starter template for event organizers, bookings, payments, and internal operations.',
+    'Multi-tenant dashboard starter for managing projects and teams.',
   url: env.NEXT_PUBLIC_SITE_URL,
   apiBaseUrl: env.NEXT_PUBLIC_API_BASE_URL,
   auth: {
     signInPath: '/login',
     signUpPath: '/register',
     adminHome: '/admin/overview',
-    appHome: '/business-owner/dashboard',
+    appHome: '/business-owner/projects',
     userHome: '/user/bookings',
     noAccessPath: '/access-denied',
   },
