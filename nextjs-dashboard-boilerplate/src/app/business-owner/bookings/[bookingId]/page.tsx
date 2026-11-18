@@ -15,4 +15,8 @@ export async function generateMetadata({
   }
 }
 
-export default BookingDetailPage
+export default async function BookingPage({ params }: BookingPageProps) {
+  const { bookingId } = await params
+
+  return <BookingDetailPage bookingId={bookingId} />
+}

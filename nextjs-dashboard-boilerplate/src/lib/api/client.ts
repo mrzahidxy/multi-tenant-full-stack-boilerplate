@@ -20,7 +20,7 @@ type QueryParams = Record<string, QueryValue>
 
 export type ApiRequestConfig = Omit<
   RequestInit,
-  'body' | 'headers' | 'method'
+  'body' | 'headers'
 > & {
   query?: QueryParams
   data?: unknown
@@ -307,7 +307,7 @@ export class ApiClient {
       data,
       headers: headersToRecord(requestHeaders),
       method: method ?? 'GET',
-      signal,
+      signal: signal ?? undefined,
       url: requestUrl,
       withCredentials: resolvedWithCredentials,
     }

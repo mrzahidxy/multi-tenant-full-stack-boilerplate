@@ -23,5 +23,3 @@ export type CreateUserFormValues = {
   role: AdminUserRole
   businessId?: string
 }
-
-export type StatusFilterOption = 'All' | 'Active' | 'Inactive'

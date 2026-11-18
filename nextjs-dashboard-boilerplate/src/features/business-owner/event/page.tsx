@@ -59,7 +59,7 @@ export default function EventPage() {
   const { data: session } = useSession()
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
   const role = session?.user.role ?? 'USER'
-  const canManageOrganizer = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER'
+  const canManageOrganizer = role === 'ADMIN' || role === 'OWNER'
 
   const [isEventModalOpen, setEventModalOpen] = useState(false)
   const [editingEventId, setEditingEventId] = useState<string | null>(null)

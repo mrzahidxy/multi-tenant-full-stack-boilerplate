@@ -16,7 +16,7 @@ export type Tenant = {
   name: string
   slug: string
   ownerEmail: string
-  landingPageHref?: string
+  landingPageHref?: `/organizers/${string}`
   license: string
   createdDate: string
   lastActive: string

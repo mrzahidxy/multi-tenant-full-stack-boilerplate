@@ -2,7 +2,6 @@ import type { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Script from 'next/script'
-import { Inter } from 'next/font/google'
 
 import { AppProvider } from '@/components/providers/app-provider'
 import { appConfig } from '@/config/app'
@@ -15,11 +14,6 @@ import {
 } from '@/lib/theme'
 
 import './globals.css'
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: {
@@ -63,7 +57,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
       </head>
       <body
         suppressHydrationWarning
-        className={`${inter.className} bg-background text-foreground`}
+        className="bg-background font-sans text-foreground"
       >
         <AppProvider>{children}</AppProvider>
       </body>

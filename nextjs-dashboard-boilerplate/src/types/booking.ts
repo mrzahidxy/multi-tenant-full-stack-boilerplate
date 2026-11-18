@@ -67,6 +67,8 @@ export type ResourceFilters = {
   checkOutDate?: string
   checkInFrom?: string
   checkInTo?: string
+  checkOutFrom?: string
+  checkOutTo?: string
 }
 
 export type PaginatedResult<T> = {
