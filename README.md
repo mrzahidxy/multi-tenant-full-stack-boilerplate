@@ -43,3 +43,5 @@ The original events, bookings, and analytics routes remain available.
 They use the older full demo dataset, which you can load with `npm run
 seed` from the API directory. That seed **resets application tables** and
 is intended for a disposable development database.
+
+See the [deployment guide](docs/deployment.md) for hosting, release, and rollback steps.
