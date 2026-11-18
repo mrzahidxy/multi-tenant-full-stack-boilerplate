@@ -20,7 +20,6 @@ import {
   createUser,
   deleteUser,
   listUsers,
-  updateUserProfile,
   updateUserRole,
   type AdminUser,
   type AdminUserRole,
@@ -32,13 +31,11 @@ import type {
   CreateUserFormValues,
   DialogAction,
   DirectoryUser,
-  StatusFilterOption,
 } from './types'
 import { ROLE_LABELS, STATUS_LABELS } from './constants'
 
 type UseUsersTableState = {
   searchQuery: string
-  statusFilter: StatusFilterOption
   isCreateOpen: boolean
   dialog: {
     isOpen: boolean
@@ -105,10 +102,9 @@ export function useUsersTable() {
   const queryClient = useQueryClient()
   const { data: session } = useSession()
 
-  const [{ searchQuery, statusFilter, isCreateOpen, dialog }, setState] =
+  const [{ searchQuery, isCreateOpen, dialog }, setState] =
     useState<UseUsersTableState>({
       searchQuery: '',
-      statusFilter: 'All',
       isCreateOpen: false,
       dialog: { isOpen: false },
     })
@@ -126,14 +122,8 @@ export function useUsersTable() {
       filters.search = deferredSearch.trim()
     }
 
-    if (statusFilter === 'Active') {
-      filters.status = 'ACTIVE'
-    } else if (statusFilter === 'Inactive') {
-      filters.status = 'INACTIVE'
-    }
-
     return filters
-  }, [deferredSearch, statusFilter])
+  }, [deferredSearch])
 
   const hasShownError = useRef(false)
 
@@ -169,19 +159,6 @@ export function useUsersTable() {
     },
     onError: (mutationError: unknown) => {
       toast.error(getErrorMessage(mutationError, 'Failed to create user'))
-    },
-  })
-
-  const statusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AdminUserStatus }) =>
-      updateUserProfile(id, { status }),
-    onSuccess: (response, variables) => {
-      const statusLabel = variables.status === 'ACTIVE' ? 'activated' : 'suspended'
-      toast.success(response.message ?? `User ${statusLabel}`)
-      queryClient.invalidateQueries({ queryKey: userKeys.all })
-    },
-    onError: (mutationError: unknown) => {
-      toast.error(getErrorMessage(mutationError, 'Failed to update user status'))
     },
   })
 
@@ -221,27 +198,17 @@ export function useUsersTable() {
         user.email.toLowerCase().includes(normalizedQuery) ||
         user.business.toLowerCase().includes(normalizedQuery)
 
-      const matchesStatus =
-        statusFilter === 'All' || user.statusLabel === statusFilter
-
-      return matchesSearch && matchesStatus
+      return matchesSearch
     })
-  }, [directoryUsers, searchQuery, statusFilter])
+  }, [directoryUsers, searchQuery])
 
   const isInitialLoading = isLoading && !data
-  const isMutatingAction = statusMutation.isPending || deleteMutation.isPending
+  const isMutatingAction = deleteMutation.isPending
 
   const setSearchQuery = useCallback((value: string) => {
     setState((prev) => ({
       ...prev,
       searchQuery: value,
-    }))
-  }, [])
-
-  const setStatusFilter = useCallback((value: StatusFilterOption) => {
-    setState((prev) => ({
-      ...prev,
-      statusFilter: value,
     }))
   }, [])
 
@@ -290,22 +257,12 @@ export function useUsersTable() {
     }
 
     try {
-      if (pendingAction === 'delete') {
-        await deleteMutation.mutateAsync(pendingUser.id)
-      } else {
-        const nextStatus: AdminUserStatus =
-          pendingAction === 'activate' ? 'ACTIVE' : 'INACTIVE'
-        await statusMutation.mutateAsync({
-          id: pendingUser.id,
-          status: nextStatus,
-        })
-      }
-
+      await deleteMutation.mutateAsync(pendingUser.id)
       resetDialog()
     } catch {
       // handled via toast in mutation callbacks
     }
-  }, [deleteMutation, dialog.action, dialog.user, isMutatingAction, resetDialog, statusMutation])
+  }, [deleteMutation, dialog.action, dialog.user, isMutatingAction, resetDialog])
 
   const handleRoleChange = useCallback(
     async (user: DirectoryUser, role: AdminUserRole) => {
@@ -378,9 +335,7 @@ export function useUsersTable() {
     isAdmin,
     currentUserId,
     searchQuery,
-    statusFilter,
     setSearchQuery,
-    setStatusFilter,
     requestAction,
     resetDialog,
     handleConfirmAction,

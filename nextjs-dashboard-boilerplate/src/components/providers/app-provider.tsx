@@ -38,6 +38,7 @@ function SessionStoreSync() {
         email: session.user.email,
         id: session.user.id,
         name: session.user.name ?? session.user.email,
+        organizerId: session.user.organizerId ?? session.user.businessId ?? null,
         permissions: session.user.permissions ?? [],
         role: session.user.role,
         status: session.user.status ?? 'ACTIVE',

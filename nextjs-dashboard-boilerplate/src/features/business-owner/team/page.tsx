@@ -39,7 +39,7 @@ export default function TeamPage() {
   const { data: session } = useSession()
   const organizerId = resolveOrganizerScopeId(session?.user ?? null)
   const role = session?.user.role ?? 'USER'
-  const canManageOrganizer = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER'
+  const canManageOrganizer = role === 'ADMIN' || role === 'OWNER'
   const canManageStaff = canManageOrganizer
 
   const [organizerName, setOrganizerName] = useState('')
@@ -152,7 +152,13 @@ export default function TeamPage() {
       return
     }
 
-    addStaffMutation.mutate(matchedCandidate.id)
+    const userId = Number(matchedCandidate.id)
+    if (!Number.isSafeInteger(userId) || userId <= 0) {
+      toast.error('The selected user has an invalid ID')
+      return
+    }
+
+    addStaffMutation.mutate(userId)
   }
 
   return (

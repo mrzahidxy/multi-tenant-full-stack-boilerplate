@@ -35,7 +35,7 @@ type LogoutResponse = {
   message?: string
 }
 
-function normalizeUser(user: RawAuthSessionResponse['user']): AuthenticatedUser {
+function normalizeUser(user: unknown): AuthenticatedUser {
   const normalized = normalizeUserLike(user)
 
   return {

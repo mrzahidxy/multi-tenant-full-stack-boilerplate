@@ -45,9 +45,7 @@ export function UsersTable({ table }: UsersTableProps) {
   const toolbar = (
     <UsersTableHeader
       searchQuery={table.searchQuery}
-      statusFilter={table.statusFilter}
       onSearchChange={table.setSearchQuery}
-      onStatusFilterChange={table.setStatusFilter}
     />
   )
 
@@ -78,28 +76,10 @@ export function UsersTable({ table }: UsersTableProps) {
         open={table.dialog.isOpen}
         onClose={table.resetDialog}
         onConfirm={table.handleConfirmAction}
-        title={
-          table.dialog.action === 'delete'
-            ? 'Delete user'
-            : table.dialog.action === 'suspend'
-            ? 'Suspend user'
-            : 'Activate user'
-        }
-        description={
-          table.dialog.action === 'delete'
-            ? `Are you sure you want to delete "${table.dialog.user?.email}"? This action cannot be undone.`
-            : table.dialog.action === 'suspend'
-            ? `Suspend "${table.dialog.user?.email}"? They will temporarily lose access to their account.`
-            : `Activate "${table.dialog.user?.email}"? They will regain access to their account.`
-        }
-        actionLabel={
-          table.isMutatingAction
-            ? 'Processing...'
-            : table.dialog.action === 'delete'
-            ? 'Delete'
-            : 'Confirm'
-        }
-        variant={table.dialog.action === 'delete' ? 'destructive' : 'default'}
+        title="Delete user"
+        description={`Are you sure you want to delete "${table.dialog.user?.email}"? This action cannot be undone.`}
+        actionLabel={table.isMutatingAction ? 'Processing...' : 'Delete'}
+        variant="destructive"
       />
 
       <UserModal
